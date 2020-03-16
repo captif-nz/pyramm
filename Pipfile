@@ -12,6 +12,7 @@ requests = "*"
 pandas = "*"
 shapely = "*"
 pyproj = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.7"
