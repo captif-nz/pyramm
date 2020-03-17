@@ -10,26 +10,19 @@ class BaseTable:
     get_geometry = False
     date_columns = []
 
-    def __init__(self, ramm, filters=[]):
+    def __init__(self, ramm, road_id=None, latest=False):
         self.df = DataFrame()
         self.ramm = ramm
-        self._set_column_names()
-        self._get_data(filters)
+        self._get_data(road_id, latest)
         self._convert_dates()
         if self.index_name:
             self.df.set_index(self.index_name, drop=True, inplace=True)
 
-    def _set_column_names(self):
-        for cc in self.ramm.table_schema(self.table_name):
-            self.df[cc.column_name] = None
-        if self.get_geometry:
-            self.df["wkt"] = None
-
-    def _get_data(self, filters):
-        self.df[self.df.columns] = self.ramm.get_data(
-            self.table_name, column_names=self.df.columns.tolist(), filters=filters
-        )[self.df.columns]
-        if self.get_geometry:
+    def _get_data(self, road_id, latest):
+        self.df = self.ramm.get_data(
+            self.table_name, road_id, latest, self.get_geometry
+        ).copy()
+        if "wkt" in self.df.columns:
             self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
 
     def _convert_dates(self):
@@ -59,8 +52,10 @@ class HsdTable(BaseTable):
     index_name = ["survey_number", "road_id", "lane", "start_m", "end_m"]
     date_columns = ["reading_date"]
 
-    def __init__(self, ramm, filters=[], survey_year=None):
-        super().__init__(ramm, filters)
+    def __init__(self, ramm, road_id, latest, survey_year=None):
+        if survey_year:
+            latest = False
+        super().__init__(ramm, road_id, latest)
         self._get_hdr_table()
         self._append_survey_year()
         self._limit_to_year(survey_year)
@@ -136,3 +131,6 @@ class TableSchema(Schema):
     @staticmethod
     def from_schema(schema):
         return TableSchema([ColumnInfo(cc) for cc in schema])
+
+    def column_names(self):
+        return [cc.column_name for cc in self]
