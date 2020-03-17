@@ -1,14 +1,19 @@
-
 from requests import get, post
 from urllib.parse import urlencode
-from json import dumps
 from numpy import ceil
 from pandas import DataFrame, concat
 from functools import lru_cache
 from . import config
 from .tables import (
-    TableSchema, Roadnames, Carrway, HsdRoughness, HsdRoughnessHdr, HsdRutting,
-    HsdRuttingHdr, HsdTexture, HsdTextureHdr
+    TableSchema,
+    Roadnames,
+    Carrway,
+    HsdRoughness,
+    HsdRoughnessHdr,
+    HsdRutting,
+    HsdRuttingHdr,
+    HsdTexture,
+    HsdTextureHdr,
 )
 
 
@@ -28,7 +33,7 @@ class Connection:
         self,
         username=config.get("RAMM", "USERNAME", fallback=None),
         password=config.get("RAMM", "PASSWORD", fallback=None),
-        database="SH New Zealand"
+        database="SH New Zealand",
     ):
 
         if username is None:
@@ -41,7 +46,7 @@ class Connection:
         self.headers = {
             "Content-type": "application/json",
             "referer": "https://test.com",
-            "Authorization": f"Bearer {authorization_key}"
+            "Authorization": f"Bearer {authorization_key}",
         }
 
     @staticmethod
@@ -51,36 +56,32 @@ class Connection:
         return username, password
 
     def _get_auth_token(self, **auth_params):
-        response = post(
-            f"{self.url}/authenticate/login?{urlencode(auth_params)}",
-        )
+        response = post(f"{self.url}/authenticate/login?{urlencode(auth_params)}",)
         if response.status_code == 200:
             return response.json()
         raise LoginError(response)
 
     def _get(self, endpoint):
-        response = get(
-            f"{self.url}/{endpoint}",
-            headers=self.headers
-        )
+        response = get(f"{self.url}/{endpoint}", headers=self.headers)
         if response.status_code == 200:
             return response.json()
         raise RequestError(response)
 
     def _post(self, endpoint, body):
-        response = post(
-            f"{self.url}/{endpoint}",
-            headers=self.headers,
-            json=body
-        )
+        response = post(f"{self.url}/{endpoint}", headers=self.headers, json=body)
         if response.status_code == 200:
             return response.json()
         raise RequestError(response)
 
     @staticmethod
     def _request_body(
-        filters=[], table_name="sh_detail", skip=0, take=1, columns=[],
-        get_geometry=False, expand_lookups=False,
+        filters=[],
+        table_name="sh_detail",
+        skip=0,
+        take=1,
+        columns=[],
+        get_geometry=False,
+        expand_lookups=False,
     ):
         return {
             "filters": filters,
@@ -100,7 +101,7 @@ class Connection:
     ):
         return self._post(
             "/data/table",
-            self._request_body(filters, table_name, skip, take, columns, get_geometry)
+            self._request_body(filters, table_name, skip, take, columns, get_geometry),
         )
 
     def _chunks(self, table_name, filters):
@@ -109,10 +110,7 @@ class Connection:
         yield from range(n_chunks)
 
     def get_data(
-        self,
-        table_name,
-        column_names=[],
-        filters=[],
+        self, table_name, column_names=[], filters=[],
     ):
         """
         Parameters
@@ -145,9 +143,9 @@ class Connection:
             df = concat(
                 [
                     df,
-                    DataFrame([rr["values"] for rr in response], columns=column_names)
+                    DataFrame([rr["values"] for rr in response], columns=column_names),
                 ],
-                ignore_index=True
+                ignore_index=True,
             )
         return df
 
@@ -158,9 +156,7 @@ class Connection:
     @lru_cache(maxsize=1)
     def table_names(self):
         # Returns a list of valid tables:
-        return [
-            table["tableName"] for table in self._get("data/tables?tableTypes=255")
-        ]
+        return [table["tableName"] for table in self._get("data/tables?tableTypes=255")]
 
     @lru_cache(maxsize=1)
     def roadnames(self):
@@ -188,6 +184,15 @@ class Connection:
         filters = parse_hsd_filters(road_id, latest, survey_year)
         return HsdRutting(self, filters, survey_year).df
 
+    @lru_cache(maxsize=1)
+    def hsd_texture_hdr(self):
+        return HsdTextureHdr(self).df
+
+    @lru_cache(maxsize=1)
+    def hsd_texture(self, road_id, latest=True, survey_year=None):
+        filters = parse_hsd_filters(road_id, latest, survey_year)
+        return HsdTexture(self, filters, survey_year).df
+
 
 def parse_hsd_filters(road_id, latest, survey_year):
     """
@@ -210,10 +215,6 @@ def parse_hsd_filters(road_id, latest, survey_year):
     elif latest:
         filters = [{"columnName": "latest", "operator": "EqualTo", "value": "L"}]
 
-    filters.append({
-        "columnName": "road_id",
-        "operator": "EqualTo",
-        "value": road_id
-    })
+    filters.append({"columnName": "road_id", "operator": "EqualTo", "value": road_id})
 
     return filters

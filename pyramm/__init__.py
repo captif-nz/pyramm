@@ -1,4 +1,3 @@
-
 from os import getenv
 from pathlib import Path
 from configparser import ConfigParser

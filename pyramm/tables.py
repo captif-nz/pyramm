@@ -1,11 +1,10 @@
-
 from pandas import DataFrame, to_datetime
 
 from .helpers import _map_json
 from .geometry import transform, loads
 
 
-class BaseTable():
+class BaseTable:
     table_name = None
     index_name = None
     get_geometry = False
@@ -28,9 +27,7 @@ class BaseTable():
 
     def _get_data(self, filters):
         self.df[self.df.columns] = self.ramm.get_data(
-            self.table_name,
-            column_names=self.df.columns.tolist(),
-            filters=filters
+            self.table_name, column_names=self.df.columns.tolist(), filters=filters
         )[self.df.columns]
         if self.get_geometry:
             self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
@@ -56,6 +53,7 @@ class HsdTable(BaseTable):
     Generic high speed data table.
 
     """
+
     hdr_table_cls = None
     hdr_table = None
     index_name = ["survey_number", "road_id", "lane", "start_m", "end_m"]
@@ -72,9 +70,9 @@ class HsdTable(BaseTable):
             self.hdr_table = self.hdr_table_cls(self.ramm)
 
     def _append_survey_year(self):
-        self.df["survey_year"] = self.df.join(
-            self.hdr_table.df["survey_date"].dt.year
-        )["survey_date"]
+        self.df["survey_year"] = self.df.join(self.hdr_table.df["survey_date"].dt.year)[
+            "survey_date"
+        ]
 
     def _limit_to_year(self, survey_year):
         if survey_year:
@@ -86,6 +84,7 @@ class HsdHdrTable(BaseTable):
     Generic high speed data header table.
 
     """
+
     date_columns = ["survey_date", "added_on", "chgd_on"]
     index_name = "survey_number"
 
@@ -115,8 +114,6 @@ class HsdTextureHdr(HsdHdrTable):
 class HsdTexture(HsdTable):
     table_name = "hsd_texture"
     hdr_table_cls = HsdTextureHdr
-
-
 
 
 class Schema:
