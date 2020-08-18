@@ -15,7 +15,7 @@ setup(
     long_description_content_type="text/markdown",
     url='https://github.com/captif-nz/pyramm',
     author="John Bull",
-    author_email="john.bull@nzta.govt.nz",
+    author_email="johnbullnz@gmail.com",
     packages=["pyramm"],
     install_requires=[
         "requests",
