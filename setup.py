@@ -13,6 +13,7 @@ setup(
     description="Provides a wrapper to the RAMM API and additional tools for positional referencing",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    url='https://github.com/captif-nz/pyramm',
     author="John Bull",
     author_email="john.bull@nzta.govt.nz",
     packages=["pyramm"],
