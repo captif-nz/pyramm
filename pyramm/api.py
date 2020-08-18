@@ -3,11 +3,18 @@ from urllib.parse import urlencode
 from numpy import ceil
 from pandas import DataFrame, concat
 from functools import lru_cache
-from .config import config
-from .tables import (
+from os import environ
+
+from pyramm.config import config
+from pyramm.tables import (
     TableSchema,
     Roadnames,
     Carrway,
+    CSurface,
+    TopSurface,
+    SurfMaterial,
+    SurfCategory,
+    MinorStructure,
     HsdRoughness,
     HsdRoughnessHdr,
     HsdRutting,
@@ -15,6 +22,19 @@ from .tables import (
     HsdTexture,
     HsdTextureHdr,
 )
+from pyramm.geometry import Centreline
+
+
+ROADNAME_COLUMNS = [
+    "sh_ne_unique",
+    "sh_state_hway",
+    "sh_element_type",
+    "sh_ref_station_no",
+    "sh_rp_km",
+    "sh_direction",
+    "road_region",
+    "road_type",
+]
 
 
 class RequestError(Exception):
@@ -31,8 +51,12 @@ class Connection:
 
     def __init__(
         self,
-        username=config().get("RAMM", "USERNAME", fallback=None),
-        password=config().get("RAMM", "PASSWORD", fallback=None),
+        username=config().get(
+            "RAMM", "USERNAME", fallback=environ.get("RAMM_USERNAME")
+        ),
+        password=config().get(
+            "RAMM", "PASSWORD", fallback=environ.get("RAMM_PASSWORD")
+        ),
         database="SH New Zealand",
     ):
 
@@ -101,9 +125,12 @@ class Connection:
         )
 
     def _chunks(self, table_name, filters):
-        n_rows = self._query(table_name, filters=filters)["total"]
+        n_rows = self._rows(table_name, filters)
         n_chunks = int(ceil(1.0 * n_rows / self.chunk_size))
         yield from range(n_chunks)
+
+    def _rows(self, table_name, filters=[]):
+        return self._query(table_name, filters=filters)["total"]
 
     def _geometry_table(self, table_name):
         return len(self._query(table_name, get_geometry=True)["rows"]) > 0
@@ -117,13 +144,17 @@ class Connection:
             {'columnName': 'latest', 'operator': 'EqualTo', 'value': 'L'}
 
         """
-        get_geometry = [False, get_geometry][self._geometry_table(table_name)]
+        if get_geometry:
+            get_geometry = [False, get_geometry][self._geometry_table(table_name)]
+
         column_names = self.column_names(table_name)
         if get_geometry:
             column_names.append("wkt")
 
         # Retrieve data from the RAMM database and return a DataFrame.
         df = DataFrame()
+        total_rows = self._rows(table_name, filters)
+        print(f"Retrieving {total_rows:.0f} rows from {table_name}")
         for i_chunk in self._chunks(table_name, filters):
             # Get data in chunks:
             response = self._query(
@@ -163,11 +194,30 @@ class Connection:
         # Returns a list of valid tables:
         return [table["tableName"] for table in self._get("data/tables?tableTypes=255")]
 
+    def centreline(self):
+        df = self.carr_way().join(self.roadnames()[ROADNAME_COLUMNS], on="road_id")
+        return Centreline(df)
+
     def roadnames(self):
         return Roadnames(self).df
 
     def carr_way(self, road_id=None):
         return Carrway(self, road_id).df
+
+    def c_surface(self, road_id=None):
+        return CSurface(self, road_id).df
+
+    def top_surface(self):
+        return TopSurface(self).df
+
+    def surf_material(self):
+        return SurfMaterial(self).df
+
+    def surf_category(self):
+        return SurfCategory(self).df
+
+    def minor_structure(self):
+        return MinorStructure(self).df
 
     def hsd_roughness_hdr(self):
         return HsdRoughnessHdr(self).df
@@ -193,7 +243,8 @@ def parse_filters(road_id=None, latest=False):
     if latest:
         filters.append({"columnName": "latest", "operator": "EqualTo", "value": "L"})
     if road_id:
-        filters.append(
-            {"columnName": "road_id", "operator": "EqualTo", "value": road_id}
-        )
+        operator, value = "EqualTo", str(int(road_id))
+        if isinstance(road_id, list):
+            operator, value = "In", ",".join([str(rr) for rr in road_id])
+        filters.append({"columnName": "road_id", "operator": operator, "value": value})
     return filters
