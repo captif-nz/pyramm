@@ -41,14 +41,28 @@ from pyramm.api import Connection
 conn = Connection()
 ```
 
-## RAMM Tables
+## Table and column names
+
+A list of available tables can be accessed using:
+
+```
+table_names = conn.table_names()
+```
+
+A list of columns for a given table can be accessed using:
+
+```
+column_names = conn.column_names(table_name)
+```
+
+## Table data
 
 Some methods are attached to the `Connection` object to provide convenient access to
 selected RAMM tables. These helper methods implement some additional filtering (exposed
 as method arguments) and automatically set the DataFrame index to the correct table
 column(s).
 
-Tables not listed in the sections below can be accessed using general the `get_table()`
+Tables not listed in the sections below can be accessed using the general `get_table()`
 method:
 
 ```
@@ -127,5 +141,7 @@ df = centreline.append_geometry(df, geometry_type="wkt")
 
 The `geometry_type` argument defaults to `"wkt"`. This will provide a
 [WKT](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry)
-LineString for each row. Alternatively, `geometry_type` can be set to `"coord"` to append
+LineString for each row.
+
+Alternatively, `geometry_type` can be set to `"coord"` to append
 a `northing` and `easting` column to the DataFrame.
