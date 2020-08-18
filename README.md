@@ -10,12 +10,8 @@ Please submit an issue if you find a bug or have an idea for an improvement.
 
 ## Installation
 
-### Method 1:
-
 ```
-git clone https://github.com/captif-nz/pyramm.git
-cd pyramm
-pip install .
+pip install pyramm
 ```
 
 ## Initialise
