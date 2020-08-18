@@ -1,10 +1,18 @@
 from setuptools import setup
+from os import path
 
+# read the contents of your README file
+this_directory = path.abspath(path.dirname(__file__))
+
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="pyramm",
-    version="1.0",
+    version="1.1",
     description="Provides a wrapper to the RAMM API and additional tools for positional referencing",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="John Bull",
     author_email="john.bull@nzta.govt.nz",
     packages=["pyramm"],
