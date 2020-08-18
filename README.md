@@ -1,4 +1,4 @@
-# py-ramm
+# pyramm
 
 Python wrapper for RAMM API.
 
@@ -21,7 +21,7 @@ You must first initialise the connection to the RAMM API as follows. Note that t
 
 ```
 from pyramm.api import Connection
-ramm = Connection(username, password, database="SH New Zealand")
+conn = Connection(username, password, database="SH New Zealand")
 ```
 
 Alternatively the username and password can be stored in file called `.pyramm.ini`. This
