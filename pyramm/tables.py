@@ -1,7 +1,7 @@
 from pandas import DataFrame, to_datetime
 
-from .helpers import _map_json
-from .geometry import transform, loads
+from pyramm.helpers import _map_json
+from pyramm.geometry import transform, loads
 
 
 class BaseTable:
@@ -23,6 +23,7 @@ class BaseTable:
             self.table_name, road_id, latest, self.get_geometry
         ).copy()
         if "wkt" in self.df.columns:
+            # self.df["geometry"] = transform([loads(ww) for ww in self.df["wkt"]])
             self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
 
     def _convert_dates(self):
@@ -38,6 +39,32 @@ class Roadnames(BaseTable):
 class Carrway(BaseTable):
     table_name = "carr_way"
     index_name = "carr_way_no"
+    get_geometry = True
+
+
+class CSurface(BaseTable):
+    table_name = "c_surface"
+    index_name = ""
+
+
+class TopSurface(BaseTable):
+    table_name = "top_surface"
+    index_name = ["road_id", "start_m", "end_m"]
+
+
+class SurfMaterial(BaseTable):
+    table_name = "surf_material"
+    index_name = "surf_material"
+
+
+class SurfCategory(BaseTable):
+    table_name = "surf_category"
+    index_name = "surf_category"
+
+
+class MinorStructure(BaseTable):
+    table_name = "minor_structure"
+    index_name = "minor_structure_id"
     get_geometry = True
 
 
@@ -103,7 +130,7 @@ class HsdRutting(HsdTable):
 
 
 class HsdTextureHdr(HsdHdrTable):
-    table_name = "hsd_texture"
+    table_name = "hsd_texture_hdr"
 
 
 class HsdTexture(HsdTable):

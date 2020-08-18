@@ -1,9 +1,8 @@
-from os import getenv
 from pathlib import Path
 from configparser import ConfigParser
 
 
-CONFIG_FILE = Path(getenv("HOME")).joinpath("pyramm.ini")
+CONFIG_FILE = Path.home().joinpath(".pyramm.ini")
 
 
 def config():
