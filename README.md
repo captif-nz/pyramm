@@ -1,4 +1,4 @@
-# py-ramm
+# pyramm
 
 Python wrapper for RAMM API.
 
