@@ -109,7 +109,7 @@ class Centreline(object):
 
         # The reference crs is used when projecting the point onto a line.
         self.ref_crs = 2193
-        self._df_features = df
+        self._df_features = df.drop_duplicates(["road_id", "carrway_start_m", "carrway_end_m"])
         self._df_points = _build_point_layer(df)
         self._kdtree = _build_kdtree(self._df_points)
 
@@ -297,7 +297,8 @@ def build_label_layer(df, width_m=300):
 
 
 def _generate_perpendicular_geometry(linestring, direction, width_m):
-    pt1, pt2 = (np.array(pp) for pp in zip(*linestring.xy))
+    points = [np.array(pp) for pp in zip(*linestring.xy)]
+    pt1, pt2 = points[0], points[-1]
     m = -1 / ((pt2[1] - pt1[1]) / (pt2[0] - pt1[0]))
     theta = np.arctan(m)
     dx = width_m * np.cos(theta)
