@@ -9,11 +9,11 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="pyramm",
-    version="1.1",
+    version="1.2",
     description="Provides a wrapper to the RAMM API and additional tools for positional referencing",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/captif-nz/pyramm',
+    url="https://github.com/captif-nz/pyramm",
     author="John Bull",
     author_email="johnbullnz@gmail.com",
     packages=["pyramm"],
