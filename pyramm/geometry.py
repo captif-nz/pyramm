@@ -97,23 +97,23 @@ def _build_kdtree(df):
 
 
 class Centreline(object):
-    def __init__(self, df):
-        # Used to find the displacement value of a point projected onto the
-        # nearest road feature. The length of the target line is specified and
-        # does not need to match the length of the geometry feature (this is
-        # usually the case with RAMM features).
-        #
-        # df can be a GeoDataFrame, or a standard DataFrame containing the RAMM
-        # carr_way table with the 'sh_direction' and 'sh_element_type' columns
-        # from the RAMM roadname table.
+    def __init__(self, df: pd.DataFrame):
+        """
+        Used to find the displacement value of a point projected onto the nearest road feature. The length of the target line is specified and does not need to match the length of the geometry feature (this is usually the case with RAMM features).
 
-        # The reference crs is used when projecting the point onto a line.
+        df can be a GeoDataFrame, or a standard DataFrame containing the RAMM carr_way table with the 'sh_direction' and 'sh_element_type' columns from the RAMM roadname table.
+
+        The reference crs is used when projecting the point onto a line.
+
+        """
         self.ref_crs = 2193
-        self._df_features = df.drop_duplicates(["road_id", "carrway_start_m", "carrway_end_m"])
+        self._df_features = df.drop_duplicates(
+            ["road_id", "carrway_start_m", "carrway_end_m"]
+        )
         self._df_points = _build_point_layer(df)
         self._kdtree = _build_kdtree(self._df_points)
 
-    def nearest_feature(self, point, point_crs=4326):
+    def nearest_feature(self, point: Point, point_crs: int = 4326):
         # Find the id of the feature nearest to a specified point.
 
         if point_crs != self.ref_crs:
@@ -130,10 +130,11 @@ class Centreline(object):
 
         return idx, distance
 
-    def displacement(self, point, point_crs=4326):
-        # Find the position along the line that is closest to the specified
-        # point. Also returns the road_id.
+    def displacement(self, point: Point, point_crs: int = 4326):
+        """
+        Find the position along the line that is closest to the specified point. Also returns the road_id.
 
+        """
         if point_crs != self.ref_crs:
             point = self.transform(point, point_crs, self.ref_crs)
 
@@ -152,17 +153,15 @@ class Centreline(object):
             offset_m,
         )
 
-    def append_geometry(self, df, geometry_type="wkt"):
+    def append_geometry(
+        self, df: pd.DataFrame, geometry_type: str = "wkt"
+    ) -> pd.DataFrame:
         """
-        Append geometry to dataframe. Dataframe must contain road_id, start_m and end_m.
+        Append geometry to dataframe.
 
-        Parameters
-        ----------
-        df : pd.DataFrame
-
-        geometry_type : str
-            Use "wkt" to return a well-known-text string. Use "coord" to return the
-            coordinates of the start_m position.
+        :param df: dataframe containing road_id, start_m and end_m columns
+        :param geometry_type: geometry type can be "wkt" for well-known-text string or "coord" for the coordinates of the start_m position, defaults to "wkt"
+        :return: dataframe with geometry appended
 
         """
         if geometry_type not in ["wkt", "coord"]:
@@ -181,25 +180,18 @@ class Centreline(object):
             df["northing"] = [cc[1] for cc in coords]
         return df
 
-    def extract_geometry(self, road_id, start_m, end_m):
-        """Extract the part of the centreline that corresponds to the section
-        of interest.
+    def extract_geometry(
+        self, road_id: int, start_m: float, end_m: float
+    ) -> LineString:
+        """
+        Extract the part of the centreline that corresponds to the section of interest.
 
-        Parameters
-        ----------
-        road_id : int
-
-        start_m : float
-
-        end_m : float
-
-        Returns
-        -------
-        sp.geometry.LineString
-            Geometry object.
+        :param road_id: road ID
+        :param start_m: start position (m)
+        :param end_m: end position (m)
+        :return: linestring geometry of road section
 
         """
-
         centreline = self._df_features
 
         selected_cways = centreline.loc[
