@@ -170,7 +170,7 @@ class Centreline(object):
         geometry = []
         for _, row in df.iterrows():
             geometry_row = self.extract_geometry(row["road_id"], row["start_m"], row["end_m"])
-            if geometry_row not None:
+            if geometry_row != None:
                 geometry.append(geometry_row)
         if geometry_type == "wkt":
             df["wkt"] = [gg.wkt for gg in geometry]
