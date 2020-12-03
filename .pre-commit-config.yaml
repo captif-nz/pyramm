@@ -1,3 +1,4 @@
+repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v1.2.3
     hooks:
@@ -9,7 +10,7 @@
     rev: stable
     hooks:
     - id: black
-      language_version: python3.7
+      language_version: python3.9
 -   repo: local
     hooks:
     -   id: tests
