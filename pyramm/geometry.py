@@ -1,4 +1,3 @@
-from typing import List, Optional
 import pyproj
 import pandas as pd
 import numpy as np
@@ -14,7 +13,6 @@ from shapely.geometry import (
     MultiPolygon,
     MultiLineString,
 )
-from shapely.geometry.base import BaseGeometry
 from numpy.linalg import norm
 from collections import deque
 from scipy.spatial import KDTree
@@ -175,18 +173,12 @@ class Centreline(object):
                 self.extract_geometry(row["road_id"], row["start_m"], row["end_m"])
             )
         if geometry_type == "wkt":
-            df["wkt"] = self._extract_wkt_from_list_of_geometry_objects(geometry)
+            df["wkt"] = [gg.wkt for gg in geometry]
         elif geometry_type == "coord":
             coords = [gg.coords[0] for gg in geometry]
             df["easting"] = [cc[0] for cc in coords]
             df["northing"] = [cc[1] for cc in coords]
         return df
-
-    @staticmethod
-    def _extract_wkt_from_list_of_geometry_objects(
-        geometry: List[Optional[BaseGeometry]],
-    ) -> List[Optional[str]]:
-        return [gg.wkt if gg else None for gg in geometry]
 
     def extract_geometry(
         self, road_id: int, start_m: float, end_m: float
