@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+from shapely.geometry.point import Point
 
 from pyramm.api import parse_filters, Connection
 from pyramm.geometry import Centreline
@@ -13,6 +14,11 @@ def conn():
 @pytest.fixture
 def centreline(conn):
     return conn.centreline()
+
+
+@pytest.fixture
+def top_surface(conn):
+    return conn.top_surface()
 
 
 def test_parse_filters():
@@ -77,3 +83,14 @@ class TestConnection:
 class TestCentreline:
     def test_centreline(self, centreline):
         assert isinstance(centreline, Centreline)
+
+    def test_append_geometry(self, centreline, top_surface):
+        df = top_surface.reset_index()
+        df = centreline.append_geometry(df)
+        assert "wkt" in df.columns
+
+    def test_extract_wkt_from_list_of_geometry_objects(self):
+        geometry = [Point(0, 0), Point(1, 2), None]
+        wkt = Centreline._extract_wkt_from_list_of_geometry_objects(geometry)
+
+        assert wkt == ["POINT (0 0)", "POINT (1 2)", None]
