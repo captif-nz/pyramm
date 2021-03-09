@@ -66,7 +66,7 @@ Tables not listed in the sections below can be accessed using the general `get_t
 method:
 
 ```
-df = conn.get_table(table_name)
+df = conn.get_data.(table_name)
 ```
 
 ### General tables:
