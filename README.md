@@ -62,7 +62,7 @@ selected RAMM tables. These helper methods implement some additional filtering (
 as method arguments) and automatically set the DataFrame index to the correct table
 column(s).
 
-Tables not listed in the sections below can be accessed using the general `get_table()`
+Tables not listed in the sections below can be accessed using the general `get_data()`
 method:
 
 ```
