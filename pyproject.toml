@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyramm"
-version = "1.3"
+version = "1.4"
 description = "Provides a wrapper to the RAMM API and additional tools for positional referencing"
 authors = ["John Bull"]
 homepage = "https://github.com/johnbullnz/pyramm"
