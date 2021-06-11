@@ -5,6 +5,7 @@ from pandas import DataFrame, concat
 from functools import lru_cache
 from os import environ
 
+from pyramm.cache import file_cache
 from pyramm.config import config
 from pyramm.tables import (
     TableSchema,
@@ -174,6 +175,7 @@ class Connection:
         return df
 
     @lru_cache(maxsize=10)
+    @file_cache()
     def get_data(self, table_name, road_id=None, latest=False, get_geometry=False):
         return self._get_data(
             table_name,
@@ -194,6 +196,8 @@ class Connection:
         # Returns a list of valid tables:
         return [table["tableName"] for table in self._get("data/tables?tableTypes=255")]
 
+    @lru_cache(maxsize=1)
+    @file_cache("centreline")
     def centreline(self):
         df = self.carr_way().join(self.roadnames()[ROADNAME_COLUMNS], on="road_id")
         return Centreline(df)

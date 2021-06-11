@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 from shapely.geometry.point import Point
 
+import pyramm
 from pyramm.api import parse_filters, Connection
 from pyramm.geometry import Centreline
 
@@ -19,6 +20,10 @@ def centreline(conn):
 @pytest.fixture
 def top_surface(conn):
     return conn.top_surface()
+
+
+def test_version():
+    assert pyramm.__version__ == "1.4"
 
 
 def test_parse_filters():
