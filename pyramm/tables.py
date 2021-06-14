@@ -1,4 +1,4 @@
-from pandas import DataFrame, to_datetime
+from pandas import DataFrame, to_datetime, read_csv, notnull
 
 from pyramm.helpers import _map_json
 from pyramm.geometry import transform, loads
@@ -12,14 +12,19 @@ class BaseTable:
 
     def __init__(self, ramm, road_id=None, latest=False):
         self.df = DataFrame()
-        self.ramm = ramm
-        self._get_data(road_id, latest)
+
+        if ramm is None:
+            return
+
+        self._get_data(ramm, road_id, latest)
         self._convert_dates()
+        self._replace_nan()
+
         if self.index_name:
             self.df.set_index(self.index_name, drop=True, inplace=True)
 
-    def _get_data(self, road_id, latest):
-        self.df = self.ramm.get_data(
+    def _get_data(self, ramm, road_id, latest):
+        self.df = ramm.get_data(
             self.table_name, road_id, latest, self.get_geometry
         ).copy()
         if "wkt" in self.df.columns:
@@ -29,6 +34,17 @@ class BaseTable:
     def _convert_dates(self):
         for cc in self.date_columns:
             self.df[cc] = to_datetime(self.df[cc])
+
+    def _replace_nan(self):
+        self.df = self.df.where(notnull(self.df), None)
+
+    @classmethod
+    def from_csv(cls, path):
+        new = cls(None)
+        new.df = read_csv(path, index_col=cls.index_name, float_precision="%g")
+        new._convert_dates()
+        new._replace_nan()
+        return new.df
 
 
 class Roadnames(BaseTable):
