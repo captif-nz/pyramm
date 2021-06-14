@@ -1,25 +1,9 @@
-import pytest
 import pandas as pd
 from shapely.geometry.point import Point
 
 import pyramm
-from pyramm.api import parse_filters, Connection
+from pyramm.api import parse_filters
 from pyramm.geometry import Centreline
-
-
-@pytest.fixture
-def conn():
-    return Connection()
-
-
-@pytest.fixture
-def centreline(conn):
-    return conn.centreline()
-
-
-@pytest.fixture
-def top_surface(conn):
-    return conn.top_surface()
 
 
 def test_version():
