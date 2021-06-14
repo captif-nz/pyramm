@@ -1,6 +1,6 @@
 __version__ = "1.4"
 
-from pyramm import api  # noqa
+from . import api, ops  # noqa
 
 
 if __name__ == "__main__":
