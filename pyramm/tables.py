@@ -4,6 +4,9 @@ from pyramm.helpers import _map_json
 from pyramm.geometry import transform, loads
 
 
+DEFAULT_DATE_COLUMNS = ["added_on", "chgd_on"]
+
+
 class BaseTable:
     table_name = None
     index_name = None
@@ -32,8 +35,12 @@ class BaseTable:
             self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
 
     def _convert_dates(self):
-        for cc in self.date_columns:
-            self.df[cc] = to_datetime(self.df[cc])
+        date_columns = set(self.date_columns + DEFAULT_DATE_COLUMNS)
+        for cc in date_columns:
+            try:
+                self.df[cc] = to_datetime(self.df[cc])
+            except KeyError:
+                pass
 
     def _replace_nan(self):
         self.df = self.df.where(notnull(self.df), None)
