@@ -1,5 +1,7 @@
 import pytest
 import pandas as pd
+
+from pandas import Timestamp
 from datetime import date
 
 from pyramm.ops.top_surface import build_top_surface, append_surface_details_to_segments
@@ -99,63 +101,63 @@ class TestTopSurface:
                             "road_id": 100,
                             "start_m": 0,
                             "end_m": 30,
-                            "surface_date": date(2020, 1, 2),
+                            "surface_date": Timestamp(2020, 1, 2),
                             "name": "1",
                         },
                         {
                             "road_id": 100,
                             "start_m": 30,
                             "end_m": 60,
-                            "surface_date": date(2020, 1, 1),
+                            "surface_date": Timestamp(2020, 1, 1),
                             "name": "A",
                         },
                         {
                             "road_id": 100,
                             "start_m": 60,
                             "end_m": 70,
-                            "surface_date": date(2020, 1, 5),
+                            "surface_date": Timestamp(2020, 1, 5),
                             "name": "3",
                         },
                         {
                             "road_id": 100,
                             "start_m": 70,
                             "end_m": 90,
-                            "surface_date": date(2020, 1, 5),
+                            "surface_date": Timestamp(2020, 1, 5),
                             "name": "5",
                         },
                         {
                             "road_id": 100,
                             "start_m": 90,
                             "end_m": 100,
-                            "surface_date": date(2020, 1, 5),
+                            "surface_date": Timestamp(2020, 1, 5),
                             "name": "3",
                         },
                         {
                             "road_id": 100,
                             "start_m": 100,
                             "end_m": 190,
-                            "surface_date": date(2020, 1, 1),
+                            "surface_date": Timestamp(2020, 1, 1),
                             "name": "A",
                         },
                         {
                             "road_id": 100,
                             "start_m": 190,
                             "end_m": 220,
-                            "surface_date": date(2020, 1, 10),
+                            "surface_date": Timestamp(2020, 1, 10),
                             "name": "4",
                         },
                         {
                             "road_id": 101,
                             "start_m": 230,
                             "end_m": 500,
-                            "surface_date": date(2021, 1, 1),
+                            "surface_date": Timestamp(2021, 1, 1),
                             "name": "B",
                         },
                         {
                             "road_id": 102,
                             "start_m": 0,
                             "end_m": 9999,
-                            "surface_date": date(2018, 6, 6),
+                            "surface_date": Timestamp(2018, 6, 6),
                             "name": "D",
                         },
                     ]
@@ -210,14 +212,14 @@ class TestTopSurface:
                         "road_id": 100,
                         "start_m": 20,
                         "end_m": 40,
-                        "surface_date": date(2020, 1, 1),
+                        "surface_date": Timestamp(2020, 1, 1),
                         "name": "A",
                     },
                     {
                         "road_id": 100,
                         "start_m": 40,
                         "end_m": 60,
-                        "surface_date": date(2020, 1, 1),
+                        "surface_date": Timestamp(2020, 1, 1),
                         "name": "A",
                     },
                     {
@@ -238,7 +240,7 @@ class TestTopSurface:
                         "road_id": 101,
                         "start_m": 240,
                         "end_m": 260,
-                        "surface_date": date(2021, 1, 1),
+                        "surface_date": Timestamp(2021, 1, 1),
                         "name": "C",
                     },
                 ]

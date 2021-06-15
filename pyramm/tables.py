@@ -4,6 +4,9 @@ from pyramm.helpers import _map_json
 from pyramm.geometry import transform, loads
 
 
+DEFAULT_DATE_COLUMNS = ["added_on", "chgd_on"]
+
+
 class BaseTable:
     table_name = None
     index_name = None
@@ -32,8 +35,12 @@ class BaseTable:
             self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
 
     def _convert_dates(self):
-        for cc in self.date_columns:
-            self.df[cc] = to_datetime(self.df[cc])
+        date_columns = set(self.date_columns + DEFAULT_DATE_COLUMNS)
+        for cc in date_columns:
+            try:
+                self.df[cc] = to_datetime(self.df[cc])
+            except KeyError:
+                pass
 
     def _replace_nan(self):
         self.df = self.df.where(notnull(self.df), None)
@@ -42,6 +49,16 @@ class BaseTable:
     def from_csv(cls, path):
         new = cls(None)
         new.df = read_csv(path, index_col=cls.index_name, float_precision="%g")
+        new._convert_dates()
+        new._replace_nan()
+        return new.df
+
+    @classmethod
+    def from_frame(cls, df):
+        new = cls(None)
+        new.df = df.copy()
+        if new.df.index.names == [None]:
+            new.df.set_index(cls.index_name, drop=True, inplace=True)
         new._convert_dates()
         new._replace_nan()
         return new.df
@@ -66,6 +83,7 @@ class CSurface(BaseTable):
 class TopSurface(BaseTable):
     table_name = "top_surface"
     index_name = ["road_id", "start_m", "end_m"]
+    date_columns = ["surface_date"]
 
 
 class SurfMaterial(BaseTable):

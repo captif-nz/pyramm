@@ -3,6 +3,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+from pyramm.tables import TopSurface
+
 
 def build_top_surface(tables: List[pd.DataFrame]) -> pd.DataFrame:
     """
@@ -19,8 +21,9 @@ def build_top_surface(tables: List[pd.DataFrame]) -> pd.DataFrame:
     :return: new top_surface table with non-overlapping surface records.
 
     """
-    tables = [_limit_to_full_width(tt) for tt in tables]
+    tables = [TopSurface.from_frame(tt) for tt in tables]
     tables = [_reset_surface_table_index(tt) for tt in tables]
+    tables = [_limit_to_full_width(tt) for tt in tables]
 
     df = pd.concat(tables, ignore_index=True)
     top_surface = pd.DataFrame()
@@ -46,7 +49,9 @@ def append_surface_details_to_segments(df: pd.DataFrame, top_surface: pd.DataFra
     :return: Road segments with surfaces details appended.
 
     """
+    top_surface = TopSurface.from_frame(top_surface)
     top_surface = _reset_surface_table_index(top_surface)
+
     surface_columns = [
         cc for cc in top_surface.columns if cc not in ["road_id", "start_m", "end_m"]
     ]
