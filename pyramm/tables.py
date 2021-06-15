@@ -73,6 +73,7 @@ class CSurface(BaseTable):
 class TopSurface(BaseTable):
     table_name = "top_surface"
     index_name = ["road_id", "start_m", "end_m"]
+    date_columns = ["surface_date"]
 
 
 class SurfMaterial(BaseTable):
