@@ -53,6 +53,16 @@ class BaseTable:
         new._replace_nan()
         return new.df
 
+    @classmethod
+    def from_frame(cls, df):
+        new = cls(None)
+        new.df = df.copy()
+        if new.df.index.names == [None]:
+            new.df.set_index(cls.index_name, drop=True, inplace=True)
+        new._convert_dates()
+        new._replace_nan()
+        return new.df
+
 
 class Roadnames(BaseTable):
     table_name = "roadnames"
