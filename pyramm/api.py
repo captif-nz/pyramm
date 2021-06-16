@@ -252,3 +252,4 @@ def parse_filters(road_id=None, latest=False):
             operator, value = "In", ",".join([str(rr) for rr in road_id])
         filters.append({"columnName": "road_id", "operator": operator, "value": value})
     return filters
+
