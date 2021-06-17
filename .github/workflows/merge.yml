@@ -1,4 +1,4 @@
-name: pyramm
+name: merge
 
 on:
   push:
