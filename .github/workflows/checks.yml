@@ -25,7 +25,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest black
         pip install .
-    - name: Run black format
+    - run: black --check .
+    - name: If needed, commit black changes
+      if: failure()
       run: |
         black .
         git config --global user.name github-actions
