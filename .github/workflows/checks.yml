@@ -1,6 +1,9 @@
 name: pyramm
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
@@ -22,8 +25,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest black
         pip install .
-#     - name: Run black format check
-#       run: black --check .
+    - name: Run black format
+      run: |
+        black .
+        git config --global user.name github-actions
+        git config --global user.email 'captif-nz@users.noreply.github.com'
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+        git checkout $GITHUB_HEAD_REF
+        git commit -am "Auto-format Python code"
+        git push origin HEAD:$GITHUB_REF
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
