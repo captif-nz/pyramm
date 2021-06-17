@@ -28,7 +28,7 @@ jobs:
         git config --global user.name github-actions
         git config --global user.email 'captif-nz@users.noreply.github.com'
         git commit -am "Auto-format Python code"
-        git push
+        git push origin HEAD:$GITHUB_REF
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
