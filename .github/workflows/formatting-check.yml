@@ -23,5 +23,5 @@ jobs:
         python -m pip install --upgrade pip
         pip install black
         pip install .
-    - name: Ruck formatting check
+    - name: Run formatting check
       run: black --check .
