@@ -30,7 +30,7 @@ jobs:
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
         git checkout $GITHUB_HEAD_REF
         git commit -am "Auto-format Python code"
-        git push
+        git push origin HEAD:$GITHUB_REF
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
