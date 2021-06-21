@@ -138,7 +138,7 @@ class Centreline(object):
 
         """
         if point_crs != self.ref_crs:
-            point = self.transform(point, point_crs, self.ref_crs)
+            point = transform(point, point_crs, self.ref_crs)
 
         # Find the nearest line feature to the specified point:
         carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs)

@@ -49,6 +49,8 @@ class BaseTable:
     def from_csv(cls, path):
         new = cls(None)
         new.df = read_csv(path, index_col=cls.index_name, float_precision="%g")
+        if "wkt" in new.df.columns:
+            new.df["geometry"] = [transform(loads(ww)) for ww in new.df["wkt"]]
         new._convert_dates()
         new._replace_nan()
         return new.df
