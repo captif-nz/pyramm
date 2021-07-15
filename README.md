@@ -145,3 +145,4 @@ LineString for each row.
 
 Alternatively, `geometry_type` can be set to `"coord"` to append
 a `northing` and `easting` column to the DataFrame.
+
