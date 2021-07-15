@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "pyramm"
-version = "1.7"
+version = "1.8"
 description = "Provides a wrapper to the RAMM API and additional tools for positional referencing"
 authors = ["John Bull"]
-homepage = "https://github.com/johnbullnz/pyramm"
+homepage = "https://github.com/captif-nz/pyramm"
 license = "MIT"
 readme = "README.md"
 keywords = ["CAPTIF", "RAMM"]
@@ -20,7 +20,6 @@ pyproj = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.2"
-pytest-randomly = "^3.5.0"
 pre-commit = "^2.9.2"
 black = "^20.8b1"
 

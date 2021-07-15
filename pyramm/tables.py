@@ -119,13 +119,13 @@ class HsdTable(BaseTable):
         if survey_year:
             latest = False
         super().__init__(ramm, road_id, latest)
-        self._get_hdr_table()
+        self._get_hdr_table(ramm)
         self._append_survey_year()
         self._limit_to_year(survey_year)
 
-    def _get_hdr_table(self):
+    def _get_hdr_table(self, ramm):
         if self.hdr_table_cls:
-            self.hdr_table = self.hdr_table_cls(self.ramm)
+            self.hdr_table = self.hdr_table_cls(ramm)
 
     def _append_survey_year(self):
         self.df["survey_year"] = self.df.join(self.hdr_table.df["survey_date"].dt.year)[

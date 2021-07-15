@@ -81,9 +81,7 @@ class Connection:
         return username, password
 
     def _get_auth_token(self, **auth_params):
-        response = post(
-            f"{self.url}/authenticate/login?{urlencode(auth_params)}",
-        )
+        response = post(f"{self.url}/authenticate/login?{urlencode(auth_params)}",)
         if response.status_code == 200:
             return response.json()
         raise LoginError(response)
