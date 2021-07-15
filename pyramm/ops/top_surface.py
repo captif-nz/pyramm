@@ -117,9 +117,7 @@ def _surface_records_to_grid(df):
 
 def _extract_surface_records_from_grid(grid):
     groups = (
-        (np.insert(np.diff(grid), 0, 1 if grid[0] > 0 else 0) != 0)
-        .astype(int)
-        .cumsum()
+        (np.insert(np.diff(grid), 0, 1 if grid[0] > 0 else 0) != 0).astype(int).cumsum()
     )
     surfaces_dict = defaultdict(list)
     for ii_group in set(groups):
