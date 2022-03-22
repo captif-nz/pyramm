@@ -1,7 +1,7 @@
+# pyramm
+
 <img align="right" src="https://github.com/captif-nz/pyramm/actions/workflows/push.yml/badge.svg">
 
-
-# pyramm
 
 Python wrapper for RAMM API.
 
