@@ -1,6 +1,14 @@
 __version__ = "1.8"
 
-from . import api, ops  # noqa
+import warnings
+
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="distutils Version classes are deprecated. Use packaging.version instead.",
+    )
+    from . import api, ops  # noqa
 
 
 if __name__ == "__main__":
