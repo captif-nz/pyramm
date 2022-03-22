@@ -1,9 +1,12 @@
+from time import sleep
+from typing import Optional
 from requests import get, post
 from urllib.parse import urlencode
-from numpy import ceil
+from numpy import arange, ceil
 from pandas import DataFrame, concat
 from functools import lru_cache
 from os import environ
+from unsync import unsync
 
 from pyramm.cache import file_cache
 from pyramm.config import config
@@ -49,7 +52,7 @@ class LoginError(Exception):
 
 class Connection:
     url = "https://apps.ramm.co.nz/RammApi6.1/v1"
-    chunk_size = 2000
+    default_chunk_size = 2000
 
     def __init__(
         self,
@@ -128,18 +131,49 @@ class Connection:
             self._request_body(filters, table_name, skip, take, get_geometry),
         )
 
-    def _chunks(self, table_name, filters):
-        n_rows = self._rows(table_name, filters)
-        n_chunks = int(ceil(1.0 * n_rows / self.chunk_size))
-        yield from range(n_chunks)
-
     def _rows(self, table_name, filters=[]):
         return self._query(table_name, filters=filters)["total"]
 
     def _geometry_table(self, table_name):
         return len(self._query(table_name, get_geometry=True)["rows"]) > 0
 
-    def _get_data(self, table_name, filters=[], get_geometry=False):
+    @unsync
+    def _get_data_partial(
+        self,
+        table_name,
+        filters,
+        get_geometry,
+        column_names,
+        start_row,
+        end_row,
+        chunk_size,
+    ):
+        df = DataFrame()
+        for skip in range(start_row, end_row, chunk_size):
+            sleep(1)
+            logger.debug(f"getting rows {skip:.0f} to {skip+chunk_size:.0f}")
+            response = self._query(
+                table_name,
+                filters=filters,
+                skip=skip,
+                take=chunk_size,
+                get_geometry=get_geometry,
+            )["rows"]
+            df = concat(
+                [
+                    df,
+                    DataFrame([rr["values"] for rr in response], columns=column_names),
+                ],
+                ignore_index=True,
+            )
+        return df
+
+    def chunk_size(self, total_rows: int, threads: int):
+        if total_rows < (self.default_chunk_size * threads):
+            return int(ceil(total_rows / threads))
+        return self.default_chunk_size
+
+    def _get_data(self, table_name, filters=[], get_geometry=False, threads=4):
         """
         Parameters
         ----------
@@ -156,36 +190,44 @@ class Connection:
             column_names.append("wkt")
 
         # Retrieve data from the RAMM database and return a DataFrame.
-        df = DataFrame()
         total_rows = self._rows(table_name, filters)
+        chunk_size = self.chunk_size(total_rows, threads)
+
         logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
-        for i_chunk in self._chunks(table_name, filters):
-            # Get data in chunks:
-            skip = i_chunk * self.chunk_size
-            logger.debug(f"getting rows {skip+1:.0f} to {skip+self.chunk_size:.0f}")
-            response = self._query(
-                table_name,
+        logger.debug(f"using {threads} threads")
+
+        rows_per_thread = int(ceil((total_rows / threads) / chunk_size) * chunk_size)
+        tasks = [
+            self._get_data_partial(
+                table_name=table_name,
                 filters=filters,
-                skip=skip,
-                take=self.chunk_size,
                 get_geometry=get_geometry,
-            )["rows"]
-            df = concat(
-                [
-                    df,
-                    DataFrame([rr["values"] for rr in response], columns=column_names),
-                ],
-                ignore_index=True,
+                column_names=column_names,
+                start_row=int(rr),
+                end_row=int(rr + rows_per_thread),
+                chunk_size=chunk_size,
             )
-        return df
+            for rr in arange(0, total_rows, rows_per_thread)
+        ]
+        results = [tt.result() for tt in tasks]
+        return concat(results, ignore_index=True)
 
     @lru_cache(maxsize=10)
     @file_cache()
-    def get_data(self, table_name, road_id=None, latest=False, get_geometry=False):
+    def get_data(
+        self,
+        table_name: str,
+        road_id: Optional[int] = None,
+        latest: bool = False,
+        get_geometry: bool = False,
+        threads: int = 4,
+    ):
+        threads = 1 if threads < 1 else threads
         return self._get_data(
             table_name,
             filters=parse_filters(road_id, latest),
             get_geometry=get_geometry,
+            threads=threads,
         )
 
     def column_names(self, table_name):
