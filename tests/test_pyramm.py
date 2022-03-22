@@ -1,3 +1,4 @@
+import pytest
 import pandas as pd
 from shapely.geometry.point import Point
 
@@ -73,8 +74,14 @@ class TestCentreline:
     def test_centreline(self, centreline):
         assert isinstance(centreline, Centreline)
 
+    @pytest.mark.slow
     def test_append_geometry(self, centreline, top_surface):
         df = top_surface.reset_index()
+        df = centreline.append_geometry(df)
+        assert "wkt" in df.columns
+
+    def test_append_geometry_fast(self, centreline, top_surface):
+        df = top_surface.reset_index().iloc[:100]
         df = centreline.append_geometry(df)
         assert "wkt" in df.columns
 

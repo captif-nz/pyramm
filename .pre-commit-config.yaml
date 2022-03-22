@@ -1,21 +1,35 @@
+fail_fast: true
+
 repos:
+
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v1.2.3
+    rev: v4.1.0
     hooks:
+    -   id: no-commit-to-branch
+        args: [--branch, stable]
     -   id: check-merge-conflict
+    -   id: check-shebang-scripts-are-executable
     -   id: debug-statements
+    -   id: end-of-file-fixer
+
+-   repo: https://github.com/pycqa/flake8
+    rev: '4.0.1'
+    hooks:
     -   id: flake8
         args: [--config=.flake8]
+
 -   repo: https://github.com/ambv/black
-    rev: stable
+    rev: 22.1.0
     hooks:
     - id: black
       language_version: python3.9
+
 -   repo: local
     hooks:
     -   id: tests
         name: run tests
         entry: pytest
+        args: [-m, 'not slow']
         always_run: true
         language: system
         types: [python]
