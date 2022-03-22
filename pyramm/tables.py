@@ -1,3 +1,4 @@
+import warnings
 from pandas import DataFrame, to_datetime, read_csv, notnull
 
 from pyramm.helpers import _map_json
@@ -31,8 +32,9 @@ class BaseTable:
             self.table_name, road_id, latest, self.get_geometry
         ).copy()
         if "wkt" in self.df.columns:
-            # self.df["geometry"] = transform([loads(ww) for ww in self.df["wkt"]])
-            self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
 
     def _convert_dates(self):
         date_columns = set(self.date_columns + DEFAULT_DATE_COLUMNS)
@@ -50,7 +52,9 @@ class BaseTable:
         new = cls(None)
         new.df = read_csv(path, index_col=cls.index_name, float_precision="%g")
         if "wkt" in new.df.columns:
-            new.df["geometry"] = [transform(loads(ww)) for ww in new.df["wkt"]]
+             with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                new.df["geometry"] = [transform(loads(ww)) for ww in new.df["wkt"]]
         new._convert_dates()
         new._replace_nan()
         return new.df
