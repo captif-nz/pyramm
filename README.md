@@ -1,22 +1,21 @@
+<img align="right" src="https://github.com/captif-nz/pyramm/actions/workflows/push.yml/badge.svg">
+
+
 # pyramm
 
 Python wrapper for RAMM API.
 
 **Users must have their own login for the RAMM database.**
 
-## Status
-
-![Tests](https://github.com/captif-nz/pyramm/actions/workflows/push.yml/badge.svg)
-
-## Issues
-
-Please submit an issue if you find a bug or have an idea for an improvement.
-
 ## Installation
 
 ```
 pip install pyramm
 ```
+
+## Issues
+
+Please submit an issue if you find a bug or have an idea for an improvement.
 
 ## Initialise
 
