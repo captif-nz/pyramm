@@ -6,6 +6,8 @@ from functools import wraps
 from pathlib import Path
 from tempfile import gettempdir
 
+from pyramm.logging import logger
+
 
 TEMP_DIRECTORY = Path(gettempdir()).joinpath("pyramm")
 
@@ -41,6 +43,7 @@ def file_cache(name=None):
                     else f"{date.today():%Y%m%d}_{name}"
                 )
                 if cache_file_path.exists():
+                    logger.debug("reading table from file cache")
                     return pickle.load(cache_file_path.open("rb"))
 
                 result = func(*args, **kwargs)

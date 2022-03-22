@@ -7,6 +7,7 @@ from os import environ
 
 from pyramm.cache import file_cache
 from pyramm.config import config
+from pyramm.logging import logger
 from pyramm.tables import (
     TableSchema,
     Roadnames,
@@ -157,13 +158,15 @@ class Connection:
         # Retrieve data from the RAMM database and return a DataFrame.
         df = DataFrame()
         total_rows = self._rows(table_name, filters)
-        print(f"Retrieving {total_rows:.0f} rows from {table_name}")
+        logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
         for i_chunk in self._chunks(table_name, filters):
             # Get data in chunks:
+            skip = i_chunk * self.chunk_size
+            logger.debug(f"getting rows {skip+1:.0f} to {skip+self.chunk_size:.0f}")
             response = self._query(
                 table_name,
                 filters=filters,
-                skip=i_chunk * self.chunk_size,
+                skip=skip,
                 take=self.chunk_size,
                 get_geometry=get_geometry,
             )["rows"]

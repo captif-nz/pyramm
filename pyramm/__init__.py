@@ -9,6 +9,7 @@ with warnings.catch_warnings():
         message="distutils Version classes are deprecated. Use packaging.version instead.",
     )
     from . import api, ops  # noqa
+    from .logging import logger  # noqa
 
 
 if __name__ == "__main__":
