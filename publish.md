@@ -8,7 +8,7 @@ Follow these steps:
 1. Merge master branch into stable branch without checkout.
 
     ```
-    git fetch . master:stable
+    git fetch . dev:master
     ```
 
 2. Create a new tag.
@@ -17,10 +17,10 @@ Follow these steps:
     git tag -a v0.1 -m "initial release"
     ```
 
-3. Push master and stable branches and the new tag.
+3. Push master branch and the new tag.
 
     ```
-    git push origin master stable v0.1
+    git push origin master v0.1
     ```
 
 It may be helpful to print the current tree in the command line:
