@@ -1,12 +1,13 @@
-name: publish package
+name: push
 
 on:
   push:
-    tags:
-    - 'v*'
+    branches:
+      - master
+      - stable
 
 jobs:
-  deploy:
+  verify_commits:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -25,18 +26,6 @@ jobs:
     - name: Check formatting
       id: check_formatting
       run: black --check .
-      continue-on-error: true
-
-    - name: Apply formatting (if required)
-      if: steps.check_formatting.outcome != 'success'
-      run: |
-        black .
-        git config --global user.name github-actions
-        git config --global user.email 'captif-nz@users.noreply.github.com'
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-        git checkout $GITHUB_HEAD_REF
-        git commit -am "Auto-format Python code"
-        git push origin HEAD:$GITHUB_REF
 
     - name: Lint with flake8
       run: |
@@ -51,6 +40,18 @@ jobs:
         RAMM_PASSWORD: ${{ secrets.RAMM_PASSWORD }}
       run: |
         pytest -v tests/
+
+  publish_package:
+    if: github.repository == 'captif-nz/pyramm' && startsWith(github.ref, 'refs/tags/v')
+    needs: verify_commits
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
 
     - name: Install pep517
       run: >-
