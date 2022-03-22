@@ -52,7 +52,7 @@ class BaseTable:
         new = cls(None)
         new.df = read_csv(path, index_col=cls.index_name, float_precision="%g")
         if "wkt" in new.df.columns:
-             with warnings.catch_warnings():
+            with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 new.df["geometry"] = [transform(loads(ww)) for ww in new.df["wkt"]]
         new._convert_dates()
