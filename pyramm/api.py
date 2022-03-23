@@ -168,11 +168,6 @@ class Connection:
             )
         return df
 
-    def chunk_size(self, total_rows: int, threads: int):
-        if total_rows < (self.default_chunk_size * threads):
-            return int(ceil(total_rows / threads))
-        return self.default_chunk_size
-
     def _get_data(self, table_name, filters=[], get_geometry=False, threads=4):
         """
         Parameters
@@ -191,7 +186,7 @@ class Connection:
 
         # Retrieve data from the RAMM database and return a DataFrame.
         total_rows = self._rows(table_name, filters)
-        chunk_size = self.chunk_size(total_rows, threads)
+        chunk_size = self.default_chunk_size
 
         logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
         logger.debug(f"using {threads} threads")
