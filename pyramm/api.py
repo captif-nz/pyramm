@@ -52,7 +52,7 @@ class LoginError(Exception):
 
 class Connection:
     url = "https://apps.ramm.co.nz/RammApi6.1/v1"
-    default_chunk_size = 2000
+    chunk_size = 2000
 
     def __init__(
         self,
@@ -186,12 +186,16 @@ class Connection:
 
         # Retrieve data from the RAMM database and return a DataFrame.
         total_rows = self._rows(table_name, filters)
-        chunk_size = self.default_chunk_size
+        if total_rows == 0:
+            logger.info(f"no rows to retrieve from {table_name}")
+            return DataFrame(columns=column_names)
 
         logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
         logger.debug(f"using {threads} threads")
 
-        rows_per_thread = int(ceil((total_rows / threads) / chunk_size) * chunk_size)
+        rows_per_thread = int(
+            ceil((total_rows / threads) / self.chunk_size) * self.chunk_size
+        )
         tasks = [
             self._get_data_partial(
                 table_name=table_name,
@@ -200,12 +204,11 @@ class Connection:
                 column_names=column_names,
                 start_row=int(rr),
                 end_row=int(rr + rows_per_thread),
-                chunk_size=chunk_size,
+                chunk_size=self.chunk_size,
             )
             for rr in arange(0, total_rows, rows_per_thread)
         ]
-        results = [tt.result() for tt in tasks]
-        return concat(results, ignore_index=True)
+        return concat([tt.result() for tt in tasks], ignore_index=True)
 
     @lru_cache(maxsize=10)
     @file_cache()
