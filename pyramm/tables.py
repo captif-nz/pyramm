@@ -178,6 +178,15 @@ class HsdTexture(HsdTable):
     hdr_table_cls = HsdTextureHdr
 
 
+class SkidResistanceHdr(HsdHdrTable):
+    table_name = "skid_Resistance_hd"
+
+
+class SkidResistance(HsdTable):
+    table_name = "skid_resistance"
+    hdr_table_cls = SkidResistanceHdr
+
+
 class Schema:
     def __iter__(self):
         yield from self.__dict__.values()

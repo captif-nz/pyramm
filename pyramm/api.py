@@ -26,6 +26,7 @@ from pyramm.tables import (
     HsdRuttingHdr,
     HsdTexture,
     HsdTextureHdr,
+    SkidResistance,
 )
 from pyramm.geometry import Centreline
 
@@ -285,6 +286,9 @@ class Connection:
 
     def hsd_texture(self, road_id, latest=True, survey_year=None):
         return HsdTexture(self, road_id, latest, survey_year).df
+
+    def skid_resistance(self, road_id, latest=True, survey_year=None):
+        return SkidResistance(self, road_id, latest, survey_year).df
 
 
 def parse_filters(road_id=None, latest=False):
