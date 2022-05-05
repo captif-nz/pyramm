@@ -79,6 +79,40 @@ class TestCentreline:
     def test_centreline(self, centreline):
         assert isinstance(centreline, Centreline)
 
+    def test_nearest_feature(self, centreline):
+        point = Point((172.618567, -43.441594))
+        carr_way_no, offset_m = centreline.nearest_feature(point)
+
+        assert carr_way_no == 11263
+        assert round(offset_m, 1) == 24.9
+
+    def test_nearest_feature_fixed_road_id(self, centreline):
+        point = Point((172.618567, -43.441594))
+        carr_way_no, offset_m = centreline.nearest_feature(point, road_id=1716)
+
+        assert carr_way_no == 11259
+        assert round(offset_m, 1) == 38.2
+
+    def test_displacement(self, centreline):
+        point = Point((172.618567, -43.441594))
+        position_m, road_id, carr_way_no, offset_m = centreline.displacement(point)
+
+        assert round(position_m, 1) == 4504.9
+        assert road_id == 1715
+        assert carr_way_no == 11263
+        assert round(offset_m, 1) == 24.9
+
+    def test_displacement_fixed_road_id(self, centreline):
+        point = Point((172.618567, -43.441594))
+        position_m, road_id, carr_way_no, offset_m = centreline.displacement(
+            point, road_id=1716
+        )
+
+        assert round(position_m, 1) == 4597.2
+        assert road_id == 1716
+        assert carr_way_no == 11259
+        assert round(offset_m, 1) == 38.2
+
     @pytest.mark.slow
     def test_append_geometry(self, centreline, top_surface):
         df = top_surface.reset_index()

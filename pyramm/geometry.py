@@ -112,36 +112,64 @@ class Centreline(object):
         self._df_features = df.drop_duplicates(
             ["road_id", "carrway_start_m", "carrway_end_m"]
         )
-        self._df_points = _build_point_layer(df)
+        self._df_points = _build_point_layer(self._df_features)
         self._kdtree = _build_kdtree(self._df_points)
 
-    def nearest_feature(self, point: Point, point_crs: int = 4326):
-        # Find the id of the feature nearest to a specified point.
+    def nearest_feature(
+        self,
+        point: Point,
+        point_crs: int = 4326,
+        road_id: Optional[int] = None,
+    ):
+        """
+        Find the id of the feature nearest to a specified point. If a road_id is
+        provided the point will lock to that centreline element.
+
+        """
 
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
-        _, ii = self._kdtree.query(point.coords[0], 2)
-        idx = self._df_points.loc[ii[0], "id"]
+        if road_id is None:
+            _df_points = self._df_points
+            _kdtree = self._kdtree
+        else:
+            _df_points = _build_point_layer(
+                self._df_features.loc[self._df_features["road_id"] == road_id]
+            )
+            _kdtree = _build_kdtree(_df_points)
+
+        _, ii = _kdtree.query(point.coords[0], 2)
+        carr_way_no = _df_points.loc[ii[0], "id"]
 
         # Calculate offset distance:
-        p1 = np.array(self._df_points.loc[ii[0], "geometry"].coords)
-        p2 = np.array(self._df_points.loc[ii[1], "geometry"].coords)
+        p1 = np.array(_df_points.loc[ii[0], "geometry"].coords)
+        p2 = np.array(_df_points.loc[ii[1], "geometry"].coords)
         p3 = np.array(point.coords)
-        distance = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
 
-        return idx, distance
+        offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
 
-    def displacement(self, point: Point, point_crs: int = 4326):
+        return carr_way_no, offset_m
+
+    def displacement(
+        self,
+        point: Point,
+        point_crs: int = 4326,
+        road_id: Optional[int] = None,
+    ):
         """
-        Find the position along the line that is closest to the specified point. Also returns the road_id.
+        Find the position along the line that is closest to the specified point. Also
+        returns the road_id. If a road_id is provided the point will lock to that
+        centreline element.
 
         """
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
         # Find the nearest line feature to the specified point:
-        carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs)
+        carr_way_no, offset_m = self.nearest_feature(
+            point, self.ref_crs, road_id=road_id
+        )
 
         start_m = self._df_features.loc[carr_way_no, "carrway_start_m"]
         length_m = self._df_features.loc[carr_way_no, "length_m"]
