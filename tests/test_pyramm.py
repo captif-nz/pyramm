@@ -113,6 +113,17 @@ class TestCentreline:
         assert carr_way_no == 11259
         assert round(offset_m, 1) == 38.2
 
+    def test_displacement_fixed_road_id_list(self, centreline):
+        point = Point((172.618567, -43.441594))
+        position_m, road_id, carr_way_no, offset_m = centreline.displacement(
+            point, road_id=[1716, 3650]
+        )
+
+        assert round(position_m, 1) == 4597.2
+        assert road_id == 1716
+        assert carr_way_no == 11259
+        assert round(offset_m, 1) == 38.2
+
     @pytest.mark.slow
     def test_append_geometry(self, centreline, top_surface):
         df = top_surface.reset_index()

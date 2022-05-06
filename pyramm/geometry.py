@@ -1,9 +1,11 @@
-from typing import List, Optional
 import pyproj
 import pandas as pd
 import numpy as np
 
+from collections import deque
 from functools import lru_cache
+from numpy.linalg import norm
+from scipy.spatial import KDTree
 from shapely import ops
 from shapely.wkt import loads  # Load into geometry namespace
 from shapely.geometry import (
@@ -15,9 +17,7 @@ from shapely.geometry import (
     MultiLineString,
 )
 from shapely.geometry.base import BaseGeometry
-from numpy.linalg import norm
-from collections import deque
-from scipy.spatial import KDTree
+from typing import List, Optional
 
 
 @lru_cache(maxsize=5)
@@ -119,11 +119,11 @@ class Centreline(object):
         self,
         point: Point,
         point_crs: int = 4326,
-        road_id: Optional[int] = None,
+        road_id=None,
     ):
         """
         Find the id of the feature nearest to a specified point. If a road_id is
-        provided the point will lock to that centreline element.
+        provided the point will lock to that centreline element. road_id can be an integer or list of integers.
 
         """
 
@@ -134,8 +134,11 @@ class Centreline(object):
             _df_points = self._df_points
             _kdtree = self._kdtree
         else:
+            if not isinstance(road_id, list):
+                road_id = [road_id]
+
             _df_points = _build_point_layer(
-                self._df_features.loc[self._df_features["road_id"] == road_id]
+                self._df_features.loc[self._df_features["road_id"].isin(road_id)]
             )
             _kdtree = _build_kdtree(_df_points)
 
@@ -155,12 +158,12 @@ class Centreline(object):
         self,
         point: Point,
         point_crs: int = 4326,
-        road_id: Optional[int] = None,
+        road_id=None,
     ):
         """
         Find the position along the line that is closest to the specified point. Also
         returns the road_id. If a road_id is provided the point will lock to that
-        centreline element.
+        centreline element. road_id can be an integer or list of integers.
 
         """
         if point_crs != self.ref_crs:

@@ -164,4 +164,4 @@ The point coordinate reference system defaults to WGS84 but can be adjusted usin
 `point_crs` argument. The value must be an integer corresponing to the
 [EPSG code](https://epsg.io/) (e.g. `4326` for WGS84).
 
-Setting the `road_id` argument will force the point to be mapped onto the specified *road_id*.
+Setting the `road_id` argument will force the point to be mapped onto the specified *road_id* or *road_ids* (if a list is provided).
