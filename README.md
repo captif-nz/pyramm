@@ -152,16 +152,34 @@ a `northing` and `easting` column to the DataFrame.
 ### Find carriageway and position from point coordinates:
 
 The carriageway and position information (e.g. Rs/Rp) can be determined for a point coordinate
-using the `displacement()` method:
+using the `position()` method:
 
 ```python
 point = Point((172.618567, -43.441594))  # Shapely Point object
-position_m, road_id, carr_way_no, offset_m = \
-    centreline.displacement(point, point_crs=4326, road_id=None)
+position = centreline.position(point, point_crs=4326)
 ```
 
 The point coordinate reference system defaults to WGS84 but can be adjusted using the
 `point_crs` argument. The value must be an integer corresponing to the
 [EPSG code](https://epsg.io/) (e.g. `4326` for WGS84).
 
-Setting the `road_id` argument will force the point to be mapped onto the specified *road_id* or *road_ids* (if a list is provided).
+#### Partial centreline
+
+Sometimes it is necessary to match only to selected parts of the RAMM centreline. In this
+case a partial centreline can be generated and used for the matching:
+
+```python
+# Generate a partial centreline containing only road_id 3656 between route position 10m
+# and 100m:
+partial_centreline = conn.centreline(lengths={3656: [10, 100]})
+
+point = Point((172.608406, -43.451023))
+position = partial_centreline.position(point)
+```
+
+The `lengths` argument is a Python dictionary containing `road_id` keys and start/end
+position pair values. Some examples include:
+
+- `{3656: None}` includes the entire centreline for road_id 3656.
+- `{3656: [10, 100]}` includes only the section of centreline for road_id 3656 between route position 10m and 100m.
+- `{3656: [500, None]}` includes only the section of centreline for road_id 3656 from route position 500m.

@@ -8,7 +8,7 @@ from pyramm.geometry import Centreline
 
 
 def test_version():
-    assert pyramm.__version__ == "1.15"
+    assert pyramm.__version__ == "1.16"
 
 
 def test_parse_filters():
@@ -79,6 +79,11 @@ class TestCentreline:
     def test_centreline(self, centreline):
         assert isinstance(centreline, Centreline)
 
+    def test_partial_centreline(self, conn):
+        partial_centreline = conn.centreline({3656: None})
+        assert isinstance(partial_centreline, Centreline)
+        assert len(partial_centreline._df_features) == 1
+
     def test_nearest_feature(self, centreline):
         point = Point((172.618567, -43.441594))
         carr_way_no, offset_m = centreline.nearest_feature(point)
@@ -86,43 +91,13 @@ class TestCentreline:
         assert carr_way_no == 11263
         assert round(offset_m, 1) == 24.9
 
-    def test_nearest_feature_fixed_road_id(self, centreline):
+    def test_position(self, centreline):
         point = Point((172.618567, -43.441594))
-        carr_way_no, offset_m = centreline.nearest_feature(point, road_id=1716)
+        position = centreline.position(point)
 
-        assert carr_way_no == 11259
-        assert round(offset_m, 1) == 38.2
-
-    def test_displacement(self, centreline):
-        point = Point((172.618567, -43.441594))
-        position_m, road_id, carr_way_no, offset_m = centreline.displacement(point)
-
-        assert round(position_m, 1) == 4504.9
-        assert road_id == 1715
-        assert carr_way_no == 11263
-        assert round(offset_m, 1) == 24.9
-
-    def test_displacement_fixed_road_id(self, centreline):
-        point = Point((172.618567, -43.441594))
-        position_m, road_id, carr_way_no, offset_m = centreline.displacement(
-            point, road_id=1716
-        )
-
-        assert round(position_m, 1) == 4597.2
-        assert road_id == 1716
-        assert carr_way_no == 11259
-        assert round(offset_m, 1) == 38.2
-
-    def test_displacement_fixed_road_id_list(self, centreline):
-        point = Point((172.618567, -43.441594))
-        position_m, road_id, carr_way_no, offset_m = centreline.displacement(
-            point, road_id=[1716, 3650]
-        )
-
-        assert round(position_m, 1) == 4597.2
-        assert road_id == 1716
-        assert carr_way_no == 11259
-        assert round(offset_m, 1) == 38.2
+        assert round(position["position_m"], 1) == 4504.9
+        assert position["road_id"] == 1715
+        assert round(position["search_offset_m"], 1) == 24.9
 
     @pytest.mark.slow
     def test_append_geometry(self, centreline, top_surface):

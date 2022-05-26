@@ -2,6 +2,7 @@ import os
 import pickle
 
 from datetime import date
+from frozendict import frozendict
 from functools import wraps
 from pathlib import Path
 from tempfile import gettempdir
@@ -22,14 +23,20 @@ def setup_temp_directory():
         os.remove(temp_file)
 
 
-def file_ref(*args, **kwargs):
-    args = args[1:] if len(args) > 1 else []
-    file_ref_str = "_".join(
-        [f"{date.today():%Y%m%d}"]
-        + [str(vv) for vv in args]
-        + [str(vv) for vv in kwargs.values()]
+def generate_cache_file_path(name=None, func_args=[], func_kwargs={}):
+    prefix = [f"{date.today():%Y%m%d}"]
+    if name is not None:
+        prefix.append(name)
+
+    func_args = func_args[1:] if len(func_args) > 1 else []
+
+    return TEMP_DIRECTORY.joinpath(
+        "_".join(
+            prefix
+            + [str(vv) for vv in func_args]
+            + [str(vv) for vv in func_kwargs.values()]
+        )
     )
-    return file_ref_str
 
 
 def file_cache(name=None):
@@ -37,11 +44,7 @@ def file_cache(name=None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             try:
-                cache_file_path = TEMP_DIRECTORY.joinpath(
-                    file_ref(*args, **kwargs)
-                    if name is None
-                    else f"{date.today():%Y%m%d}_{name}"
-                )
+                cache_file_path = generate_cache_file_path(name, args, kwargs)
                 if cache_file_path.exists():
                     logger.debug("reading table from file cache")
                     return pickle.load(cache_file_path.open("rb"))
@@ -59,3 +62,23 @@ def file_cache(name=None):
 
 
 setup_temp_directory()
+
+
+def freezeargs(func):
+    """
+    Transform mutable dictionnary into immutable.
+    https://stackoverflow.com/questions/6358481/using-functools-lru-cache-with-dictionary-arguments
+
+    """
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        args = tuple(
+            [frozendict(arg) if isinstance(arg, dict) else arg for arg in args]
+        )
+        kwargs = {
+            k: frozendict(v) if isinstance(v, dict) else v for k, v in kwargs.items()
+        }
+        return func(*args, **kwargs)
+
+    return wrapped

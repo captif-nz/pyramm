@@ -8,7 +8,7 @@ from functools import lru_cache
 from os import environ
 from unsync import unsync
 
-from pyramm.cache import file_cache
+from pyramm.cache import file_cache, freezeargs
 from pyramm.config import config
 from pyramm.logging import logger
 from pyramm.tables import (
@@ -28,19 +28,7 @@ from pyramm.tables import (
     HsdTextureHdr,
     SkidResistance,
 )
-from pyramm.geometry import Centreline
-
-
-ROADNAME_COLUMNS = [
-    "sh_ne_unique",
-    "sh_state_hway",
-    "sh_element_type",
-    "sh_ref_station_no",
-    "sh_rp_km",
-    "sh_direction",
-    "road_region",
-    "road_type",
-]
+from pyramm.geometry import Centreline, ROADNAME_COLUMNS, build_partial_centreline
 
 
 class RequestError(Exception):
@@ -242,11 +230,33 @@ class Connection:
         # Returns a list of valid tables:
         return [table["tableName"] for table in self._get("data/tables?tableTypes=255")]
 
+    @freezeargs
     @lru_cache(maxsize=1)
     @file_cache("centreline")
-    def centreline(self):
+    def centreline(self, lengths: Optional[dict] = None):
+        """
+        Parameters
+        ----------
+        lengths: dict
+            Dict with road_ids as keys and start/end position pairs (or None) as the
+            value. This limits the returned Centreline object to a subset of the full
+            RAMM centreline.
+
+            Examples:
+            1.  lengths={3565: None, 3566: None} - centreline limited to road_id 3565
+                and 3566.
+            2.  lengths={3565: [100, 200]} - centreline limited to road_id 3565 between
+                position 100 metres and 200 metres.
+            3.  lengths={3565: [500, None]} - centreline limited to road_id 3565 between
+                position 500 metres and the end of the road_id element.
+
+        """
         df = self.carr_way().join(self.roadnames()[ROADNAME_COLUMNS], on="road_id")
-        return Centreline(df)
+        if lengths is None:
+            return Centreline(df)
+        return build_partial_centreline(
+            Centreline(df), self.roadnames(), lengths=lengths
+        )
 
     def roadnames(self):
         return Roadnames(self).df

@@ -14,5 +14,10 @@ def centreline(conn):
 
 
 @pytest.fixture
+def roadnames(conn):
+    return conn.roadnames()
+
+
+@pytest.fixture
 def top_surface(conn):
     return conn.top_surface()

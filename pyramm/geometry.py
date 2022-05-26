@@ -1,3 +1,4 @@
+from io import UnsupportedOperation
 import pyproj
 import pandas as pd
 import numpy as np
@@ -18,6 +19,18 @@ from shapely.geometry import (
 )
 from shapely.geometry.base import BaseGeometry
 from typing import List, Optional
+
+
+ROADNAME_COLUMNS = [
+    "sh_ne_unique",
+    "sh_state_hway",
+    "sh_element_type",
+    "sh_ref_station_no",
+    "sh_rp_km",
+    "sh_direction",
+    "road_region",
+    "road_type",
+]
 
 
 @lru_cache(maxsize=5)
@@ -119,72 +132,59 @@ class Centreline(object):
         self,
         point: Point,
         point_crs: int = 4326,
-        road_id=None,
     ):
         """
-        Find the id of the feature nearest to a specified point. If a road_id is
-        provided the point will lock to that centreline element. road_id can be an integer or list of integers.
+        Find the id of the feature nearest to a specified point.
 
         """
 
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
-        if road_id is None:
-            _df_points = self._df_points
-            _kdtree = self._kdtree
-        else:
-            if not isinstance(road_id, list):
-                road_id = [road_id]
-
-            _df_points = _build_point_layer(
-                self._df_features.loc[self._df_features["road_id"].isin(road_id)]
-            )
-            _kdtree = _build_kdtree(_df_points)
-
-        _, ii = _kdtree.query(point.coords[0], 2)
-        carr_way_no = _df_points.loc[ii[0], "id"]
+        _, ii = self._kdtree.query(point.coords[0], 2)
+        carr_way_no = self._df_points.loc[ii[0], "id"]
 
         # Calculate offset distance:
-        p1 = np.array(_df_points.loc[ii[0], "geometry"].coords)
-        p2 = np.array(_df_points.loc[ii[1], "geometry"].coords)
+        p1 = np.array(self._df_points.loc[ii[0], "geometry"].coords)
+        p2 = np.array(self._df_points.loc[ii[1], "geometry"].coords)
         p3 = np.array(point.coords)
 
         offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
 
         return carr_way_no, offset_m
 
-    def displacement(
+    def displacement(*args, **kwargs):
+        raise UnsupportedOperation(
+            "Centreline.displacement() has been replaced by the Centreline.position() "
+            "method."
+        )
+
+    def position(
         self,
         point: Point,
         point_crs: int = 4326,
-        road_id=None,
     ):
         """
-        Find the position along the line that is closest to the specified point. Also
-        returns the road_id. If a road_id is provided the point will lock to that
-        centreline element. road_id can be an integer or list of integers.
+        Find the position along the line that is closest to the specified point. Returns
+        a dictionary with `road_id`, `position_m` and `search_offset_m` keys.
 
         """
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
         # Find the nearest line feature to the specified point:
-        carr_way_no, offset_m = self.nearest_feature(
-            point, self.ref_crs, road_id=road_id
-        )
+        carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs)
 
         start_m = self._df_features.loc[carr_way_no, "carrway_start_m"]
         length_m = self._df_features.loc[carr_way_no, "length_m"]
 
         position = self._df_features.geometry[carr_way_no].project(point, True)
 
-        return (
-            start_m + position * length_m,
-            self._df_features.loc[carr_way_no, "road_id"],
-            carr_way_no,
-            offset_m,
-        )
+        return {
+            "position_m": start_m + position * length_m,
+            "road_id": self._df_features.loc[carr_way_no, "road_id"],
+            "search_offset_m": offset_m,
+        }
 
     def append_geometry(
         self, df: pd.DataFrame, geometry_type: str = "wkt"
@@ -325,6 +325,33 @@ def build_label_layer(df, width_m=300):
             loads(row["wkt"]), row["direction"], width_m
         )
     return df
+
+
+def build_partial_centreline(centreline, roadnames, lengths: dict):
+    df_features = centreline._df_features
+
+    records = []
+    for road_id, start_end in lengths.items():
+        selected_features = df_features.loc[df_features["road_id"] == road_id]
+
+        if start_end is None:
+            start_m = selected_features["carrway_start_m"].min()
+            end_m = selected_features["carrway_end_m"].max()
+        else:
+            start_m, end_m = start_end
+            end_m = selected_features["carrway_end_m"].max() if end_m is None else end_m
+
+        records.append({"road_id": road_id, "start_m": start_m, "end_m": end_m})
+
+    df = (
+        centreline.append_geometry(pd.DataFrame(records))
+        .rename(columns={"start_m": "carrway_start_m", "end_m": "carrway_end_m"})
+        .join(roadnames[ROADNAME_COLUMNS], on="road_id")
+    )
+    df["length_m"] = abs(df["carrway_end_m"] - df["carrway_start_m"])
+    df["geometry"] = [loads(ww) for ww in df["wkt"]]
+
+    return Centreline(df)
 
 
 def _generate_perpendicular_geometry(linestring, direction, width_m):
