@@ -1,5 +1,3 @@
-__version__ = "1.17"
-
 import warnings
 
 
@@ -10,6 +8,7 @@ with warnings.catch_warnings():
     )
     from . import api, ops  # noqa
     from .logging import logger  # noqa
+    from .version import __version__  # noqa
 
 
 if __name__ == "__main__":

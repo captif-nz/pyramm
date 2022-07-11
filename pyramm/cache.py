@@ -1,12 +1,15 @@
 import os
 import pickle
 
+import pandas as pd
+
 from datetime import date
 from frozendict import frozendict
 from functools import wraps
 from pathlib import Path
 from tempfile import gettempdir
 
+from pyramm.version import __version__
 from pyramm.logging import logger
 
 
@@ -35,6 +38,8 @@ def generate_cache_file_path(name=None, func_args=[], func_kwargs={}):
             prefix
             + [str(vv) for vv in func_args]
             + [str(vv) for vv in func_kwargs.values()]
+            + [pd.__version__]
+            + [__version__]
         )
     )
 
