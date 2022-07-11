@@ -67,12 +67,12 @@ jobs:
         pep517
         --user
 
-    - name: Test with pytest (slow tests only)
-      env:
-        RAMM_USERNAME: ${{ secrets.RAMM_USERNAME }}
-        RAMM_PASSWORD: ${{ secrets.RAMM_PASSWORD }}
-      run: |
-        pytest -m 'slow' -v tests/
+    # - name: Test with pytest (slow tests only)
+    #   env:
+    #     RAMM_USERNAME: ${{ secrets.RAMM_USERNAME }}
+    #     RAMM_PASSWORD: ${{ secrets.RAMM_PASSWORD }}
+    #   run: |
+    #     pytest -m 'slow' -v tests/
 
     - name: Build a binary wheel and a source tarball
       run: >-
@@ -87,4 +87,3 @@ jobs:
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.PYPI_KEY }}
-
