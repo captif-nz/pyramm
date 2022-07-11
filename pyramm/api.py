@@ -255,7 +255,7 @@ class Connection:
         if lengths is None:
             return Centreline(df)
         return build_partial_centreline(
-            Centreline(df), self.roadnames(), lengths=lengths
+            self.centreline(), self.roadnames(), lengths=lengths
         )
 
     def roadnames(self):

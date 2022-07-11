@@ -8,7 +8,7 @@ from pyramm.geometry import Centreline
 
 
 def test_version():
-    assert pyramm.__version__ == "1.16"
+    assert pyramm.__version__ == "1.17"
 
 
 def test_parse_filters():
@@ -99,7 +99,7 @@ class TestCentreline:
         assert position["road_id"] == 1715
         assert round(position["search_offset_m"], 1) == 24.9
 
-    @pytest.mark.slow
+    @pytest.mark.skip
     def test_append_geometry(self, centreline, top_surface):
         df = top_surface.reset_index()
         df = centreline.append_geometry(df)
