@@ -436,11 +436,9 @@ def combine_continuous_segments(
     sort_columns = ["road_id", "start_m", "end_m"]
     combined = pd.DataFrame()
     for values, gg in df.groupby(groupby):
-        gg = (
-            gg.drop_duplicates(["start_m", "end_m"])
-            .sort_values(["start_m", "end_m"])
-            .set_index(pd.Index([1] * len(gg)))
-        )
+        gg = gg.drop_duplicates(["start_m", "end_m"]).sort_values(["start_m", "end_m"])
+        gg.set_index(pd.Index([1] * len(gg)), inplace=True)
+
         records = _extract_records_from_grid(_records_to_grid(gg)).drop(columns="id")
 
         values = [values] if not isinstance(values, tuple) else values

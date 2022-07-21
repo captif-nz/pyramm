@@ -33,6 +33,7 @@ def test_combine_continuous_segments():
             {"road_id": 1, "start_m": 60, "end_m": 70},
             {"road_id": 1, "start_m": 100, "end_m": 110},
             {"road_id": 2, "start_m": 1000, "end_m": 1010},
+            {"road_id": 2, "start_m": 1000, "end_m": 1010},  # test with duplicate row
             {"road_id": 2, "start_m": 1010, "end_m": 1020},
             {"road_id": 3, "start_m": 0, "end_m": 20},
         ]
