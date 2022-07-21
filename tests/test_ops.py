@@ -168,7 +168,7 @@ class TestTopSurface:
             assert new.equals(expected)
 
         def test_build_top_surface_real_table(self, top_surface):
-            top_surface_limited = top_surface.iloc[:1000]
+            top_surface_limited = top_surface.iloc[:100]
             new = build_top_surface([top_surface_limited])
             expected = top_surface_limited.loc[
                 top_surface_limited["full_width_flag"].str.lower() == "y"

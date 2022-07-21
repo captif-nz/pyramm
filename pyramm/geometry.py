@@ -20,6 +20,8 @@ from shapely.geometry import (
 from shapely.geometry.base import BaseGeometry
 from typing import List, Optional
 
+from pyramm.helpers import _records_to_grid, _extract_records_from_grid
+
 
 ROADNAME_COLUMNS = [
     "sh_ne_unique",
@@ -403,3 +405,48 @@ def _extract_centreline(centreline_obj, road_id):
     return centreline_obj._df_features.loc[
         centreline_obj._df_features["road_id"].isin(road_id)
     ]
+
+
+def combine_continuous_segments(
+    df: pd.DataFrame,
+    groupby: list = ["road_id"],
+) -> pd.DataFrame:
+    """Combines road segments with consecutive start_m and end_m values. This is useful
+    as a preparation step before appending centreline geometry where a continuous segment
+    is desired over its components.
+
+    By default segments are grouped by "road_id". This can be adjusted using the
+    `group_by` parameter. The groupby values are included in the resulting dataframe.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing the segments to be combined with "road_id", "start_m" and
+        "end_m" columns. If the `groupby` parameter is used these columns must also be
+        present.
+    groupby : list, optional
+        Column names used to group the segments prior to combining, by default
+        ["road_id"]
+
+    Returns
+    -------
+    pd.DataFrame
+        Combined road segments.
+    """
+    sort_columns = ["road_id", "start_m", "end_m"]
+    combined = pd.DataFrame()
+    for values, gg in df.groupby(groupby):
+        gg = (
+            gg.drop_duplicates(["start_m", "end_m"])
+            .sort_values(["start_m", "end_m"])
+            .set_index(pd.Index([1] * len(gg)))
+        )
+        records = _extract_records_from_grid(_records_to_grid(gg)).drop(columns="id")
+
+        values = [values] if not isinstance(values, tuple) else values
+        for kk, vv in zip(groupby, values):
+            records[kk] = vv
+
+        combined = pd.concat([combined, records], axis=0, ignore_index=True)
+
+    return combined[sort_columns + [cc for cc in groupby if cc not in sort_columns]]

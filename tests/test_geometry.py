@@ -1,7 +1,9 @@
 import pytest
+import pandas as pd
+from pandas.testing import assert_frame_equal
 from shapely.geometry import Point
 
-from pyramm.geometry import build_partial_centreline
+from pyramm.geometry import build_partial_centreline, combine_continuous_segments
 
 
 @pytest.mark.parametrize(
@@ -21,3 +23,45 @@ def test_build_partial_centreline(
     position = partial_centreline.position(point)
     assert position["road_id"] == road_id
     assert round(position["position_m"], 3) == position_m
+
+
+def test_combine_continuous_segments():
+    df = pd.DataFrame(
+        [
+            {"road_id": 1, "start_m": 40, "end_m": 50},
+            {"road_id": 1, "start_m": 50, "end_m": 60},
+            {"road_id": 1, "start_m": 60, "end_m": 70},
+            {"road_id": 1, "start_m": 100, "end_m": 110},
+            {"road_id": 2, "start_m": 1000, "end_m": 1010},
+            {"road_id": 2, "start_m": 1010, "end_m": 1020},
+            {"road_id": 3, "start_m": 0, "end_m": 20},
+        ]
+    )
+    expected = pd.DataFrame(
+        [
+            {"road_id": 1, "start_m": 40, "end_m": 70},
+            {"road_id": 1, "start_m": 100, "end_m": 110},
+            {"road_id": 2, "start_m": 1000, "end_m": 1020},
+            {"road_id": 3, "start_m": 0, "end_m": 20},
+        ]
+    )
+    new = combine_continuous_segments(df)
+    assert_frame_equal(new, expected)
+
+
+def test_combine_continuous_segments_groupby():
+    df = pd.DataFrame(
+        [
+            {"road_id": 1, "start_m": 40, "end_m": 50, "c_surface_id": 1},
+            {"road_id": 1, "start_m": 50, "end_m": 60, "c_surface_id": 1},
+            {"road_id": 1, "start_m": 60, "end_m": 70, "c_surface_id": 2},
+        ]
+    )
+    expected = pd.DataFrame(
+        [
+            {"road_id": 1, "start_m": 40, "end_m": 60, "c_surface_id": 1},
+            {"road_id": 1, "start_m": 60, "end_m": 70, "c_surface_id": 2},
+        ]
+    )
+    new = combine_continuous_segments(df, groupby=["road_id", "c_surface_id"])
+    assert_frame_equal(new, expected)
