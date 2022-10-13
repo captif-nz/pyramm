@@ -121,9 +121,9 @@ hsd_texture_hdr = conn.hsd_texture_hdr()
 The `Centreline` object is provided to:
  - assist with generating geometry for table entries (based on `road_id`, `start_m` and
 `end_m` values),
- <!-- - find the nearest geometry element to give a point (`latitude`, `longitude`),
+ <!-- - find the nearest geometry element to give a point (`latitude`, `longitude`), -->
  - find the displacement (in metres) along the nearest geometry element given a point
-(`latitude`, `longitude`). -->
+(`latitude`, `longitude`).
 
 The base geometry used by the `Centreline` object is derived from the `carr_way` table.
 
