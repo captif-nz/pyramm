@@ -3,7 +3,7 @@
 <img align="right" src="https://github.com/captif-nz/pyramm/actions/workflows/push.yml/badge.svg">
 
 
-Python wrapper for RAMM API.
+Python wrapper for the [RAMM API](https://api.ramm.com/v1/documentation/index).
 
 **Users must have their own login for the RAMM database.**
 
