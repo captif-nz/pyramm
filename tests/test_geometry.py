@@ -3,7 +3,11 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from shapely.geometry import Point
 
-from pyramm.geometry import build_partial_centreline, combine_continuous_segments
+from pyramm.geometry import (
+    build_partial_centreline,
+    combine_continuous_segments,
+    build_chainage_layer,
+)
 
 
 @pytest.mark.parametrize(
@@ -66,3 +70,98 @@ def test_combine_continuous_segments_groupby():
     )
     new = combine_continuous_segments(df, groupby=["road_id", "c_surface_id"])
     assert_frame_equal(new, expected)
+
+
+def test_build_chainage_layer(centreline):
+    df = build_chainage_layer(centreline, [3664, 3670, 3667])
+    assert df[
+        [
+            "is_start",
+            "is_end",
+            "is_ramp",
+            "is_2000s",
+            "is_1000s",
+            "is_500s",
+            "is_200s",
+            "is_100s",
+            "label",
+        ]
+    ].to_dict("records") == [
+        {
+            "is_start": True,
+            "is_end": False,
+            "is_ramp": False,
+            "is_2000s": False,
+            "is_1000s": False,
+            "is_500s": False,
+            "is_200s": False,
+            "is_100s": False,
+            "label": "01S-0333/01.40-D",
+        },
+        {
+            "is_start": False,
+            "is_end": False,
+            "is_ramp": False,
+            "is_2000s": True,
+            "is_1000s": True,
+            "is_500s": True,
+            "is_200s": True,
+            "is_100s": True,
+            "label": "01S-0333/02.00-D",
+        },
+        {
+            "is_start": False,
+            "is_end": False,
+            "is_ramp": False,
+            "is_2000s": False,
+            "is_1000s": True,
+            "is_500s": True,
+            "is_200s": True,
+            "is_100s": True,
+            "label": "01S-0333/03.00-D",
+        },
+        {
+            "is_start": False,
+            "is_end": False,
+            "is_ramp": False,
+            "is_2000s": True,
+            "is_1000s": True,
+            "is_500s": True,
+            "is_200s": True,
+            "is_100s": True,
+            "label": "01S-0333/04.00-D",
+        },
+        {
+            "is_start": False,
+            "is_end": True,
+            "is_ramp": False,
+            "is_2000s": False,
+            "is_1000s": False,
+            "is_500s": False,
+            "is_200s": False,
+            "is_100s": False,
+            "label": "01S-0333/04.13-D",
+        },
+        {
+            "is_start": True,
+            "is_end": False,
+            "is_ramp": True,
+            "is_2000s": True,
+            "is_1000s": True,
+            "is_500s": True,
+            "is_200s": True,
+            "is_100s": True,
+            "label": "01S-0333/00.00-R2",
+        },
+        {
+            "is_start": False,
+            "is_end": True,
+            "is_ramp": True,
+            "is_2000s": False,
+            "is_1000s": False,
+            "is_500s": False,
+            "is_200s": False,
+            "is_100s": False,
+            "label": "01S-0333/00.25-R2",
+        },
+    ]

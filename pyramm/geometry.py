@@ -18,7 +18,7 @@ from shapely.geometry import (
     MultiLineString,
 )
 from shapely.geometry.base import BaseGeometry
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pyramm.helpers import _records_to_grid, _extract_records_from_grid
 
@@ -30,6 +30,7 @@ ROADNAME_COLUMNS = [
     "sh_ref_station_no",
     "sh_rp_km",
     "sh_direction",
+    "sh_ramp_no",
     "road_region",
     "road_type",
 ]
@@ -312,7 +313,12 @@ class Centreline(object):
         return LineString(extracted_coords)
 
 
-def build_chainage_layer(centreline, road_id, length_m=1000, width_m=300):
+def build_chainage_layer(
+    centreline,
+    road_id: Union[int, list],
+    length_m: int = 1000,
+    width_m: int = 300,
+):
     selected = _extract_centreline(centreline, road_id)
     chainage_base = centreline.append_geometry(
         _build_chainage_base_table(selected, length_m)
@@ -324,7 +330,7 @@ def build_label_layer(df, width_m=300):
     df = df.copy()
     for ii, row in df.iterrows():
         df.loc[ii, "wkt"] = _generate_perpendicular_geometry(
-            loads(row["wkt"]), row["direction"], width_m
+            loads(row["wkt"]), row["sh_direction"], width_m
         )
     return df
 
@@ -370,41 +376,80 @@ def _generate_perpendicular_geometry(linestring, direction, width_m):
     return LineString([pt1, pt3])
 
 
-def _build_chainage_base_table(selected, length_m):
-    groupby = ["road_id", "sh_state_hway", "sh_ref_station_no", "sh_direction"]
+def _build_chainage_base_table(
+    selected, length_m, include_start=True, include_end=True
+):
+    groupby = [
+        "road_id",
+        "sh_state_hway",
+        "sh_ref_station_no",
+        "sh_direction",
+        "sh_element_type",
+        "sh_ramp_no",
+    ]
     df = pd.DataFrame()
-    for (road_id_, sh, rs, direction), gg in selected.groupby(groupby):
-        df_ = pd.DataFrame(
-            {
-                "road_id": road_id_,
-                "start_m": np.arange(*_carrway_start_end_m(gg), length_m),
-            }
-        )
+    for vv, gg in selected.groupby(groupby, dropna=False):
+
+        if vv[groupby.index("sh_element_type")] == "RND":
+            continue
+
+        start_m, end_m = _carrway_start_end_m(gg)
+        start_m_adj = int(np.ceil(start_m / length_m) * length_m)
+
+        records = []
+
+        if include_start:
+            records.append({"start_m": int(start_m), "is_start": True})
+
+        if include_end:
+            records.append({"start_m": int(end_m) - 1, "is_end": True})
+
+        if (start_m_adj > 0) and (start_m_adj < end_m):
+            records += [
+                {"start_m": int(xx)}
+                for xx in np.arange(start_m_adj, end_m + 1, length_m)
+            ]
+
+        df_ = pd.DataFrame(records).sort_values("start_m").reset_index(drop=True)
+
         df_["end_m"] = df_["start_m"] + 1
-        df_["direction"] = direction
-        df_["label"] = _generate_rsrp_labels(
-            sh, rs, direction, df_["start_m"].to_list()
-        )
+        for ii, column in enumerate(groupby):
+            df_[column] = vv[ii]
+
         df = pd.concat([df, df_], ignore_index=True)
+
+    for column in ["is_start", "is_end"]:
+        df.loc[df[column].isnull(), column] = False
+
+    df["is_ramp"] = ~df["sh_ramp_no"].isnull()
+
+    for interval_m in [2000, 1000, 500, 200, 100]:
+        df[f"is_{interval_m}s"] = (df["start_m"] % interval_m) == 0
+
+    df["label"] = _generate_rsrp_labels(df)
+
     return df
 
 
-def _generate_rsrp_labels(sh, rs, direction, rps):
-    rs = float(rs)
-    rps = [float(rp) for rp in rps]
-    return [f"{sh}-{rs:04.0f}/{rp/1000:05.2f}-{direction}" for rp in rps]
+def _generate_rsrp_labels(df):
+    labels = []
+    for _, row in df.iterrows():
+        rs = float(row.sh_ref_station_no)
+        rp = float(row.start_m) if ~row.is_end else row.end_m
+        suffix = f"R{row.sh_ramp_no:.0f}" if row.is_ramp else row.sh_direction
+        labels.append(f"{row.sh_state_hway}-{rs:04.0f}/{rp/1000:05.2f}-{suffix}")
+
+    return labels
 
 
 def _carrway_start_end_m(df):
     return df.carrway_start_m.min(), df.carrway_end_m.max()
 
 
-def _extract_centreline(centreline_obj, road_id):
+def _extract_centreline(centreline, road_id: Union[int, list]):
     if isinstance(road_id, int):
         road_id = [road_id]
-    return centreline_obj._df_features.loc[
-        centreline_obj._df_features["road_id"].isin(road_id)
-    ]
+    return centreline._df_features.loc[centreline._df_features["road_id"].isin(road_id)]
 
 
 def combine_continuous_segments(
