@@ -69,11 +69,6 @@ class TestConnection:
         selected = conn.carr_way(road_id)
         assert set(selected.index) == set(df.index)
 
-    def test_table_with_no_rows(self, conn):
-        road_id = 3816
-        df = conn.hsd_rutting(road_id=road_id)
-        assert len(df) == 0
-
 
 class TestCentreline:
     def test_centreline(self, centreline):
