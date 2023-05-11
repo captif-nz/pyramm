@@ -59,7 +59,7 @@ def transform(geometry, from_crs=4326, to_crs=2193):
 
 
 def _build_point_layer(df):
-    geometry, idx = [], []
+    geometry, idx, road_id = [], [], []
     offset = 0.1  # Start/end offset in metres.
     for i, row in df.iterrows():
         # Add additional points over the first/last 20 metres to avoid
@@ -93,9 +93,10 @@ def _build_point_layer(df):
         # Extract the points and id for each feature:
         geometry += [Point(xy) for xy in coords]
         idx += [row.name] * len(coords)
+        road_id += [row.road_id] * len(coords)
 
     # Store individual points with corresponding id in a GeoDataFrame:
-    return pd.DataFrame({"id": idx, "geometry": geometry})
+    return pd.DataFrame({"id": idx, "road_id": road_id, "geometry": geometry})
 
 
 def _coords(df):
@@ -135,6 +136,7 @@ class Centreline(object):
         self,
         point: Point,
         point_crs: int = 4326,
+        road_id: Optional[int] = None,
     ):
         """
         Find the id of the feature nearest to a specified point.
@@ -144,12 +146,19 @@ class Centreline(object):
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
-        _, ii = self._kdtree.query(point.coords[0], 2)
-        carr_way_no = self._df_points.loc[ii[0], "id"]
+        if road_id is None:
+            df_points = self._df_points
+            kdtree = self._kdtree
+        else:
+            df_points = self._df_points[self._df_points["road_id"] == road_id]
+            kdtree = _build_kdtree(df_points)
+
+        _, ii = kdtree.query(point.coords[0], 2)
+        carr_way_no = df_points.iloc[ii[0]]["id"]
 
         # Calculate offset distance:
-        p1 = np.array(self._df_points.loc[ii[0], "geometry"].coords)
-        p2 = np.array(self._df_points.loc[ii[1], "geometry"].coords)
+        p1 = np.array(df_points.iloc[ii[0]]["geometry"].coords)
+        p2 = np.array(df_points.iloc[ii[1]]["geometry"].coords)
         p3 = np.array(point.coords)
 
         offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
@@ -166,6 +175,7 @@ class Centreline(object):
         self,
         point: Point,
         point_crs: int = 4326,
+        road_id: Optional[int] = None,
     ):
         """
         Find the position along the line that is closest to the specified point. Returns
@@ -176,7 +186,7 @@ class Centreline(object):
             point = transform(point, point_crs, self.ref_crs)
 
         # Find the nearest line feature to the specified point:
-        carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs)
+        carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs, road_id)
 
         start_m = self._df_features.loc[carr_way_no, "carrway_start_m"]
         length_m = self._df_features.loc[carr_way_no, "length_m"]

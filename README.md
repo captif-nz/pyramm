@@ -156,12 +156,15 @@ using the `position()` method:
 
 ```python
 point = Point((172.618567, -43.441594))  # Shapely Point object
-position = centreline.position(point, point_crs=4326)
+position = centreline.position(point, point_crs=4326, road_id=None)
 ```
 
 The point coordinate reference system defaults to WGS84 but can be adjusted using the
 `point_crs` argument. The value must be an integer corresponing to the
 [EPSG code](https://epsg.io/) (e.g. `4326` for WGS84).
+
+If the `road_id` argument is provided then the position will be determined only for the
+specified road. Otherwise the position will be determined for the nearest road.
 
 #### Partial centreline
 
