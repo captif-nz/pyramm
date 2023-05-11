@@ -389,7 +389,6 @@ def _build_chainage_base_table(
     ]
     df = pd.DataFrame()
     for vv, gg in selected.groupby(groupby, dropna=False):
-
         if vv[groupby.index("sh_element_type")] == "RND":
             continue
 

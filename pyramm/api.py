@@ -53,7 +53,6 @@ class Connection:
         ),
         database="SH New Zealand",
     ):
-
         if username is None:
             username, password = self._get_credentials()
 
