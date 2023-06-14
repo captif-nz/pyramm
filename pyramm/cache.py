@@ -3,7 +3,7 @@ import pickle
 
 import pandas as pd
 
-from datetime import date
+from datetime import datetime
 from frozendict import frozendict
 from functools import wraps
 from pathlib import Path
@@ -18,7 +18,7 @@ TEMP_DIRECTORY = Path(gettempdir()).joinpath("pyramm")
 
 def setup_temp_directory():
     TEMP_DIRECTORY.mkdir(exist_ok=True)
-    date_str = f"{date.today():%Y%m%d}"
+    date_str = f"{datetime.now():%Y%m%d}"
 
     for temp_file in TEMP_DIRECTORY.glob("*"):
         if date_str in temp_file.stem:
@@ -27,7 +27,7 @@ def setup_temp_directory():
 
 
 def generate_cache_file_path(name=None, func_args=[], func_kwargs={}):
-    prefix = [f"{date.today():%Y%m%d}"]
+    prefix = [f"{datetime.now():%Y%m%d}"]
     if name is not None:
         prefix.append(name)
 
