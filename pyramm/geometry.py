@@ -4,9 +4,8 @@ import pandas as pd
 import numpy as np
 
 from functools import lru_cache
-from numpy.linalg import norm
-from scipy.spatial import KDTree
 from shapely import ops
+from shapely import shortest_line as shortest_line_
 from shapely.wkt import loads  # Load into geometry namespace
 from shapely.geometry import (
     Point,
@@ -57,44 +56,6 @@ def transform(geometry, from_crs=4326, to_crs=2193):
     return _transform_single(geometry, from_crs, to_crs)
 
 
-def _build_point_layer(df, dx: float = 2):
-    geometry, idx, road_id = [], [], []
-    for _, row in df.iterrows():
-        x_start = dx
-        x_end = np.floor(row.geometry.length / dx) * dx
-        if x_end == row.geometry.length:
-            x_end -= dx
-
-        coords = [
-            row.geometry.interpolate(xx, normalized=False)
-            for xx in np.arange(x_start, x_end + dx, dx)
-        ]
-
-        # Extract the points and id for each feature:
-        geometry += [Point(xy) for xy in coords]
-        idx += [row.name] * len(coords)
-        road_id += [row.road_id] * len(coords)
-
-    # Store individual points with corresponding id in a GeoDataFrame:
-    return pd.DataFrame({"id": idx, "road_id": road_id, "geometry": geometry})
-
-
-def _coords(df):
-    return [gg.coords[0] for gg in df.geometry.tolist()]
-
-
-def _x_coords(coords):
-    return [cc[0] for cc in coords]
-
-
-def _y_coords(coords):
-    return [cc[1] for cc in coords]
-
-
-def _build_kdtree(df):
-    return KDTree(np.array(list(zip(_x_coords(_coords(df)), _y_coords(_coords(df))))))
-
-
 class Centreline(object):
     def __init__(self, df: pd.DataFrame):
         """
@@ -109,8 +70,7 @@ class Centreline(object):
         self._df_features = df.drop_duplicates(
             ["road_id", "carrway_start_m", "carrway_end_m"]
         )
-        self._df_points = _build_point_layer(self._df_features)
-        self._kdtree = _build_kdtree(self._df_points)
+        self._geometry = MultiLineString(self._df_features["geometry"].to_list())
 
     def nearest_feature(
         self,
@@ -122,28 +82,32 @@ class Centreline(object):
         Find the id of the feature nearest to a specified point.
 
         """
-
         if point_crs != self.ref_crs:
             point = transform(point, point_crs, self.ref_crs)
 
-        if road_id is None:
-            df_points = self._df_points
-            kdtree = self._kdtree
-        else:
-            df_points = self._df_points[self._df_points["road_id"] == road_id]
-            kdtree = _build_kdtree(df_points)
+        selected_geometries = self._geometry
+        if road_id is not None:
+            selected_geometries = MultiLineString(
+                self._df_features.loc[
+                    self._df_features["road_id"] == road_id,
+                    "geometry",
+                ].to_list()
+            )
 
-        _, ii = kdtree.query(point.coords[0], 2)
-        carr_way_no = df_points.iloc[ii[0]]["id"]
+        shortest_line = shortest_line_(selected_geometries, point)
+        for pp in shortest_line.coords:
+            if pp == point.coords[0]:
+                continue
+            intersecting_point = Point(pp)
 
-        # Calculate offset distance:
-        p1 = np.array(df_points.iloc[ii[0]]["geometry"].coords)
-        p2 = np.array(df_points.iloc[ii[1]]["geometry"].coords)
-        p3 = np.array(point.coords)
+        for _, row in self._df_features.iterrows():
+            if row.geometry.distance(intersecting_point) < 0.001:
+                return (
+                    row.name,  # carr_way_no
+                    shortest_line.length,  # offset_m
+                )
 
-        offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
-
-        return carr_way_no, offset_m
+        return None, None
 
     def displacement(*args, **kwargs):
         raise UnsupportedOperation(
