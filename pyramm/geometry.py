@@ -157,10 +157,10 @@ class Centreline(object):
         if method == "kdtree":
             if self._kdtree is None:
                 self._build_kdtree()
-                return self.nearest_feature_kdtree(
-                    point=point,
-                    road_id=road_id,
-                )
+            return self.nearest_feature_kdtree(
+                point=point,
+                road_id=road_id,
+            )
 
         return self.nearest_feature_shortest_line(
             point=point,
