@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 
 from functools import lru_cache
+from numpy.linalg import norm
+from scipy.spatial import KDTree
 from shapely import ops
 from shapely import shortest_line as shortest_line_
 from shapely.wkt import loads  # Load into geometry namespace
@@ -16,7 +18,7 @@ from shapely.geometry import (
     MultiLineString,
 )
 from shapely.geometry.base import BaseGeometry
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pyramm.helpers import _records_to_grid, _extract_records_from_grid
 
@@ -56,12 +58,55 @@ def transform(geometry, from_crs=4326, to_crs=2193):
     return _transform_single(geometry, from_crs, to_crs)
 
 
+def _build_point_layer(df, dx: float = 2):
+    geometry, idx, road_id = [], [], []
+    for _, row in df.iterrows():
+        x_start = dx
+        x_end = np.floor(row.geometry.length / dx) * dx
+        if x_end == row.geometry.length:
+            x_end -= dx
+
+        coords = [
+            row.geometry.interpolate(xx, normalized=False)
+            for xx in np.arange(x_start, x_end + dx, dx)
+        ]
+
+        # Extract the points and id for each feature:
+        geometry += [Point(xy) for xy in coords]
+        idx += [row.name] * len(coords)
+        road_id += [row.road_id] * len(coords)
+
+    # Store individual points with corresponding id in a GeoDataFrame:
+    return pd.DataFrame({"id": idx, "road_id": road_id, "geometry": geometry})
+
+
+def _coords(df):
+    return [gg.coords[0] for gg in df.geometry.tolist()]
+
+
+def _x_coords(coords):
+    return [cc[0] for cc in coords]
+
+
+def _y_coords(coords):
+    return [cc[1] for cc in coords]
+
+
+def _build_kdtree(df):
+    return KDTree(np.array(list(zip(_x_coords(_coords(df)), _y_coords(_coords(df))))))
+
+
 class Centreline(object):
     def __init__(self, df: pd.DataFrame):
         """
-        Used to find the displacement value of a point projected onto the nearest road feature. The length of the target line is specified and does not need to match the length of the geometry feature (this is usually the case with RAMM features).
+        Used to find the displacement value of a point projected onto the
+        nearest road feature. The length of the target line is specified and
+        does not need to match the length of the geometry feature (this is
+        usually the case with RAMM features).
 
-        df can be a GeoDataFrame, or a standard DataFrame containing the RAMM carr_way table with the 'sh_direction' and 'sh_element_type' columns from the RAMM roadname table.
+        df can be a GeoDataFrame, or a standard DataFrame containing the RAMM
+        carr_way table with the 'sh_direction' and 'sh_element_type' columns
+        from the RAMM roadname table.
 
         The reference crs is used when projecting the point onto a line.
 
@@ -70,21 +115,67 @@ class Centreline(object):
         self._df_features = df.drop_duplicates(
             ["road_id", "carrway_start_m", "carrway_end_m"]
         )
+        self._df_points = None
+        self._kdtree = None
         self._geometry = MultiLineString(self._df_features["geometry"].to_list())
+
+    def _build_kdtree(self):
+        self._df_points = _build_point_layer(self._df_features)
+        self._kdtree = _build_kdtree(self._df_points)
+        self._geometry = None
+
+    def build_limited_centreline(
+        self,
+        points: MultiPoint,
+        point_crs: int = 4326,
+        buffer_distance_m: float = 200,
+    ):
+        if point_crs != self.ref_crs:
+            points = transform(points, point_crs, self.ref_crs)
+
+        df_features_records = []
+        for carr_way_no, row in self._df_features.iterrows():
+            buffered_line = row.geometry.buffer(buffer_distance_m)
+            if not buffered_line.intersects(points):
+                continue
+            row_dict = row.to_dict()
+            row_dict["carr_way_no"] = carr_way_no
+            df_features_records.append(row_dict)
+
+        return Centreline(pd.DataFrame(df_features_records).set_index("carr_way_no"))
 
     def nearest_feature(
         self,
         point: Point,
         point_crs: int = 4326,
         road_id: Optional[int] = None,
+        method: Literal["shortest line", "kdtree"] = "shortest line",
+    ):
+        if point_crs != self.ref_crs:
+            point = transform(point, point_crs, self.ref_crs)
+
+        if method == "kdtree":
+            if self._kdtree is None:
+                self._build_kdtree()
+                return self.nearest_feature_kdtree(
+                    point=point,
+                    road_id=road_id,
+                )
+
+        return self.nearest_feature_shortest_line(
+            point=point,
+            road_id=road_id,
+        )
+
+    def nearest_feature_shortest_line(
+        self,
+        point: Point,
+        road_id: Optional[int] = None,
     ):
         """
         Find the id of the feature nearest to a specified point.
 
         """
-        if point_crs != self.ref_crs:
-            point = transform(point, point_crs, self.ref_crs)
-
         selected_geometries = self._geometry
         if road_id is not None:
             selected_geometries = MultiLineString(
@@ -108,6 +199,34 @@ class Centreline(object):
                 )
 
         return None, None
+
+    def nearest_feature_kdtree(
+        self,
+        point: Point,
+        road_id: Optional[int] = None,
+    ):
+        """
+        Find the id of the feature nearest to a specified point.
+
+        """
+        if road_id is None:
+            df_points = self._df_points
+            kdtree = self._kdtree
+        else:
+            df_points = self._df_points[self._df_points["road_id"] == road_id]
+            kdtree = _build_kdtree(df_points)
+
+        _, ii = kdtree.query(point.coords[0], 2)
+        carr_way_no = df_points.iloc[ii[0]]["id"]
+
+        # Calculate offset distance:
+        p1 = np.array(df_points.iloc[ii[0]]["geometry"].coords)
+        p2 = np.array(df_points.iloc[ii[1]]["geometry"].coords)
+        p3 = np.array(point.coords)
+
+        offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
+
+        return carr_way_no, offset_m
 
     def displacement(*args, **kwargs):
         raise UnsupportedOperation(

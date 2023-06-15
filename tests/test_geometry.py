@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from shapely.geometry import Point
+from shapely.geometry import Point, MultiPoint
 
 from pyramm.geometry import (
     build_partial_centreline,
@@ -165,3 +165,29 @@ def test_build_chainage_layer(centreline):
             "label": "01S-0333/00.25-R2",
         },
     ]
+
+
+def test_build_limited_centreline(centreline):
+    points = MultiPoint(
+        [
+            (172.608406, -43.451023),
+            (172.631957, -43.436542),
+        ]
+    )
+    limited_centreline = centreline.build_limited_centreline(
+        points=points,
+    )
+    assert len(limited_centreline._df_features) == 8
+
+
+def test_nearest_feature_kdtree(centreline):
+    limited_centreline = centreline.build_limited_centreline(
+        points=MultiPoint([(172.618567, -43.441594)]),
+    )
+    carr_way_no, offset_m = limited_centreline.nearest_feature(
+        point=Point((172.618567, -43.441594)),
+        method="kdtree",
+    )
+    assert carr_way_no == 11263
+    assert round(offset_m, 1) == 26.1
+    assert limited_centreline._kdtree is not None
