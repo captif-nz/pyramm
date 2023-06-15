@@ -239,6 +239,7 @@ class Centreline(object):
         point: Point,
         point_crs: int = 4326,
         road_id: Optional[int] = None,
+        method: Literal["shortest line", "kdtree"] = "shortest line",
     ):
         """
         Find the position along the line that is closest to the specified point. Returns
@@ -249,7 +250,12 @@ class Centreline(object):
             point = transform(point, point_crs, self.ref_crs)
 
         # Find the nearest line feature to the specified point:
-        carr_way_no, offset_m = self.nearest_feature(point, self.ref_crs, road_id)
+        carr_way_no, offset_m = self.nearest_feature(
+            point,
+            self.ref_crs,
+            road_id,
+            method=method,
+        )
 
         start_m = self._df_features.loc[carr_way_no, "carrway_start_m"]
         length_m = self._df_features.loc[carr_way_no, "length_m"]
