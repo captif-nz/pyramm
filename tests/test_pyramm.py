@@ -84,7 +84,7 @@ class TestCentreline:
         carr_way_no, offset_m = centreline.nearest_feature(point)
 
         assert carr_way_no == 11263
-        assert round(offset_m, 1) == 24.9
+        assert round(offset_m, 1) == 26.1
 
     def test_position(self, centreline):
         point = Point((172.618567, -43.441594))
@@ -92,7 +92,7 @@ class TestCentreline:
 
         assert round(position["position_m"], 1) == 4504.9
         assert position["road_id"] == 1715
-        assert round(position["search_offset_m"], 1) == 24.9
+        assert round(position["search_offset_m"], 1) == 26.1
 
     def test_position_with_road_id(self, centreline):
         point = Point((172.618567, -43.441594))
@@ -100,7 +100,7 @@ class TestCentreline:
 
         assert round(position["position_m"], 1) == 4597.2
         assert position["road_id"] == 1716
-        assert round(position["search_offset_m"], 1) == 38.2
+        assert round(position["search_offset_m"], 1) == 38.8
 
     @pytest.mark.skip
     def test_append_geometry(self, centreline, top_surface):

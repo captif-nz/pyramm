@@ -3,7 +3,6 @@ import pyproj
 import pandas as pd
 import numpy as np
 
-from collections import deque
 from functools import lru_cache
 from numpy.linalg import norm
 from scipy.spatial import KDTree
@@ -58,37 +57,18 @@ def transform(geometry, from_crs=4326, to_crs=2193):
     return _transform_single(geometry, from_crs, to_crs)
 
 
-def _build_point_layer(df):
+def _build_point_layer(df, dx: float = 2):
     geometry, idx, road_id = [], [], []
-    offset = 0.1  # Start/end offset in metres.
-    for i, row in df.iterrows():
-        # Add additional points over the first/last 20 metres to avoid
-        # incorrect snapping at gaps.
-        coords = deque(list(row.geometry.coords)[1:-2])
-        for rr in range(20, 0, -5):
-            coords.appendleft(
-                row.geometry.interpolate(
-                    rr / row.geometry.length, normalized=True
-                ).coords[0]
-            )
-            coords.append(
-                row.geometry.interpolate(
-                    1 - rr / row.geometry.length, normalized=True
-                ).coords[0]
-            )
+    for _, row in df.iterrows():
+        x_start = dx
+        x_end = np.floor(row.geometry.length / dx) * dx
+        if x_end == row.geometry.length:
+            x_end -= dx
 
-        # Modify the lines so that consecutive lines don't start/end right
-        # on top of one another:
-        coords.appendleft(
-            row.geometry.interpolate(
-                offset / row.geometry.length, normalized=True
-            ).coords[0]
-        )
-        coords.append(
-            row.geometry.interpolate(
-                1 - offset / row.geometry.length, normalized=True
-            ).coords[0]
-        )
+        coords = [
+            row.geometry.interpolate(xx, normalized=False)
+            for xx in np.arange(x_start, x_end + dx, dx)
+        ]
 
         # Extract the points and id for each feature:
         geometry += [Point(xy) for xy in coords]
@@ -404,6 +384,7 @@ def _build_chainage_base_table(
 
         start_m, end_m = _carrway_start_end_m(gg)
         start_m_adj = int(np.ceil(start_m / length_m) * length_m)
+        start_m_adj = start_m_adj + length_m if start_m_adj == start_m else start_m_adj
 
         records = []
 
@@ -413,7 +394,7 @@ def _build_chainage_base_table(
         if include_end:
             records.append({"start_m": int(end_m) - 1, "is_end": True})
 
-        if (start_m_adj > 0) and (start_m_adj < end_m):
+        if start_m_adj < end_m:
             records += [
                 {"start_m": int(xx)}
                 for xx in np.arange(start_m_adj, end_m + 1, length_m)
@@ -436,6 +417,10 @@ def _build_chainage_base_table(
         df[f"is_{interval_m}s"] = (df["start_m"] % interval_m) == 0
 
     df["label"] = _generate_rsrp_labels(df)
+
+    for cc in df.columns:
+        if cc.startswith("is_"):
+            df[cc] = df[cc].astype(bool)
 
     return df
 
