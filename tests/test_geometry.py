@@ -191,3 +191,32 @@ def test_nearest_feature_kdtree(centreline):
     assert carr_way_no == 11263
     assert round(offset_m, 1) == 26.1
     assert limited_centreline._kdtree is not None
+
+
+def test_nearest_feature_shortest_line(centreline):
+    carr_way_no, offset_m = centreline.nearest_feature(
+        point=Point((172.618567, -43.441594)),
+        method="shortest line",
+    )
+    assert carr_way_no == 11263
+    assert round(offset_m, 1) == 26.1
+
+
+def test_nearest_feature_shortest_line_road_id(centreline):
+    carr_way_no, offset_m = centreline.nearest_feature(
+        point=Point((175.090586493333, -40.83538405)),
+        method="shortest line",
+        road_id=3816,
+    )
+    assert carr_way_no == 11747
+    assert round(offset_m, 1) == 2.9
+
+
+def test_nearest_feature_shortest_line_road_id_2(centreline):
+    carr_way_no, offset_m = centreline.nearest_feature(
+        point=Point((175.090586493333, -40.83538405)),
+        method="shortest line",
+        road_id=3563,
+    )
+    assert carr_way_no == 10771
+    assert round(offset_m, 1) == 2.9

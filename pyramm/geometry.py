@@ -193,6 +193,10 @@ class Centreline(object):
 
         for _, row in self._df_features.iterrows():
             if row.geometry.distance(intersecting_point) < 0.001:
+                # Skip if the road_ids don't match:
+                if road_id is not None and row.road_id != road_id:
+                    continue
+
                 return (
                     row.name,  # carr_way_no
                     shortest_line.length,  # offset_m
