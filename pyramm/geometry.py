@@ -273,13 +273,17 @@ class Centreline(object):
         }
 
     def append_geometry(
-        self, df: pd.DataFrame, geometry_type: str = "wkt"
+        self,
+        df: pd.DataFrame,
+        geometry_type: str = "wkt",
+        ends_only: bool = False,
     ) -> pd.DataFrame:
         """
         Append geometry to dataframe.
 
         :param df: dataframe containing road_id, start_m and end_m columns
         :param geometry_type: geometry type can be "wkt" for well-known-text string or "coord" for the coordinates of the start_m position, defaults to "wkt"
+        :param ends_only: if True, only the start and end points are returned, defaults to False
         :return: dataframe with geometry appended
 
         """
@@ -289,7 +293,12 @@ class Centreline(object):
         geometry = []
         for _, row in df.iterrows():
             geometry.append(
-                self.extract_geometry(row["road_id"], row["start_m"], row["end_m"])
+                self.extract_geometry(
+                    row["road_id"],
+                    row["start_m"],
+                    row["end_m"],
+                    ends_only,
+                )
             )
         if geometry_type == "wkt":
             df["wkt"] = self._extract_wkt_from_list_of_geometry_objects(geometry)
@@ -306,7 +315,7 @@ class Centreline(object):
         return [gg.wkt if gg else None for gg in geometry]
 
     def extract_geometry(
-        self, road_id: int, start_m: float, end_m: float
+        self, road_id: int, start_m: float, end_m: float, ends_only: bool = False
     ) -> LineString:
         """
         Extract the part of the centreline that corresponds to the section of interest.
@@ -314,6 +323,7 @@ class Centreline(object):
         :param road_id: road ID
         :param start_m: start position (m)
         :param end_m: end position (m)
+        :param ends_only: if True, only the start and end points are returned, defaults to False
         :return: linestring geometry of road section
 
         """
@@ -392,6 +402,9 @@ class Centreline(object):
                 .interpolate(ref_pos, normalized=True)
                 .coords[0]
             )
+
+        if ends_only:
+            return LineString([extracted_coords[0], extracted_coords[-1]])
 
         return LineString(extracted_coords)
 

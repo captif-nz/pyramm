@@ -220,3 +220,34 @@ def test_nearest_feature_shortest_line_road_id_2(centreline):
     )
     assert carr_way_no == 10771
     assert round(offset_m, 1) == 2.9
+
+
+def test_extract_geometry(centreline):
+    geometry = centreline.extract_geometry(
+        road_id=3589,
+        start_m=5330,
+        end_m=5350,
+    )
+    assert len(geometry.coords) == 3
+    assert geometry.coords[0] == pytest.approx(
+        (1564198.6479590088, 5186205.344215191),
+    )
+    assert geometry.coords[-1] == pytest.approx(
+        (1564189.0309959787, 5186187.792160582),
+    )
+
+
+def test_extract_geometry_ends_only(centreline):
+    geometry = centreline.extract_geometry(
+        road_id=3589,
+        start_m=5330,
+        end_m=5350,
+        ends_only=True,
+    )
+    assert len(geometry.coords) == 2
+    assert geometry.coords[0] == pytest.approx(
+        (1564198.6479590088, 5186205.344215191),
+    )
+    assert geometry.coords[-1] == pytest.approx(
+        (1564189.0309959787, 5186187.792160582),
+    )
