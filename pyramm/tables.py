@@ -32,6 +32,10 @@ class BaseTable:
             self.table_name, road_id, latest, self.get_geometry
         ).copy()
         if "wkt" in self.df.columns:
+            # Drop lines with missing geometry:
+            self.df = self.df.loc[self.df["wkt"] != ""].reset_index(drop=True)
+
+            # Parse WKT string to geometry:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 self.df["geometry"] = [transform(loads(ww)) for ww in self.df["wkt"]]
