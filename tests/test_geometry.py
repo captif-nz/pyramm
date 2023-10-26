@@ -222,6 +222,19 @@ def test_nearest_feature_shortest_line_road_id_2(centreline):
     assert round(offset_m, 1) == 2.9
 
 
+def test_nearest_feature_shortest_line_coincident_with_centreline(centreline):
+    from shapely.geometry import Point
+
+    point = Point(1776931.317417459, 5478527.211259831)
+    carr_way_no, offset_m = centreline.nearest_feature(
+        point,
+        point_crs=2193,
+        method="shortest_line",
+    )
+    assert carr_way_no == 11747
+    assert offset_m == pytest.approx(0)
+
+
 def test_extract_geometry(centreline):
     geometry = centreline.extract_geometry(
         road_id=3589,

@@ -186,10 +186,9 @@ class Centreline(object):
             )
 
         shortest_line = shortest_line_(selected_geometries, point)
-        for pp in shortest_line.coords:
-            if pp == point.coords[0]:
-                continue
-            intersecting_point = Point(pp)
+        for intersecting_point in [Point(pp) for pp in shortest_line.coords]:
+            if intersecting_point != point.coords[0]:
+                break
 
         for _, row in self._df_features.iterrows():
             if row.geometry.distance(intersecting_point) < 0.001:
