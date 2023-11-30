@@ -518,7 +518,7 @@ def _build_chainage_base_table(
 
     df["is_ramp"] = ~df["sh_ramp_no"].isnull()
 
-    for interval_m in [2000, 1000, 500, 200, 100]:
+    for interval_m in [2000, 1000, 500, 200, 100, 50, 20, 10]:
         df[f"is_{interval_m}s"] = (df["start_m"] % interval_m) == 0
 
     df["label"] = _generate_rsrp_labels(df)
