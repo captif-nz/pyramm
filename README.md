@@ -186,3 +186,34 @@ position pair values. Some examples include:
 - `{3656: None}` includes the entire centreline for road_id 3656.
 - `{3656: [10, 100]}` includes only the section of centreline for road_id 3656 between route position 10m and 100m.
 - `{3656: [500, None]}` includes only the section of centreline for road_id 3656 from route position 500m.
+
+
+## Geometry module
+
+The geometry module includes some functions to generate spatial layers for use
+with GIS.
+
+### Chainage layer
+
+A chainage layer can be generated for a given road_id or list of road_ids using 
+`build_chainage_layer`.
+
+The layer includes a marker line and a label line for each chainage point. The 
+geometry is defined by a WKT string.
+
+```python
+from pyramm.geometry import build_chainage_layer
+
+# Generate chainage layer for road_id 655, the other values are the default:
+chainage_layer = build_chainage_layer(
+    centreline,
+    road_id=655,
+    length_m=1000,  # distance betrween chainage markers
+    width_m=150,  # width of chainage marker line
+    offset_m=0,  # offset of chainage marker line from centreline (can be negative)
+    label_width_m=20,  # width of chainage label line
+    label_offset_m=180,  # offset of chainage label line from centreline
+)
+
+chainage_layer.to_csv("chainage_layer.csv", index=False)
+```
