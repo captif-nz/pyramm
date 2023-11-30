@@ -204,22 +204,22 @@ def test_nearest_feature_shortest_line(centreline):
 
 def test_nearest_feature_shortest_line_road_id(centreline):
     carr_way_no, offset_m = centreline.nearest_feature(
-        point=Point((175.090586493333, -40.83538405)),
-        method="shortest line",
-        road_id=3816,
-    )
-    assert carr_way_no == 11747
-    assert round(offset_m, 1) == 2.9
-
-
-def test_nearest_feature_shortest_line_road_id_2(centreline):
-    carr_way_no, offset_m = centreline.nearest_feature(
-        point=Point((175.090586493333, -40.83538405)),
+        point=Point((175.066240, -40.850238)),
         method="shortest line",
         road_id=3563,
     )
     assert carr_way_no == 10771
-    assert round(offset_m, 1) == 2.9
+    assert round(offset_m, 1) == 36.3
+
+
+def test_nearest_feature_shortest_line_road_id_2(centreline):
+    carr_way_no, offset_m = centreline.nearest_feature(
+        point=Point((175.066240, -40.850238)),
+        method="shortest line",
+        road_id=3564,
+    )
+    assert carr_way_no == 10772
+    assert round(offset_m, 1) == 49.3
 
 
 def test_nearest_feature_shortest_line_coincident_with_centreline(centreline):
@@ -231,7 +231,7 @@ def test_nearest_feature_shortest_line_coincident_with_centreline(centreline):
         point_crs=2193,
         method="shortest_line",
     )
-    assert carr_way_no == 11747
+    assert carr_way_no == 12491
     assert offset_m == pytest.approx(0)
 
 
