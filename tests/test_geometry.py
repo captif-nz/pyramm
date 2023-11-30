@@ -73,98 +73,49 @@ def test_combine_continuous_segments_groupby():
 
 
 def test_build_chainage_layer(centreline):
-    df = build_chainage_layer(centreline, [3664, 3670, 3667])
-    assert df[
-        [
-            "is_start",
-            "is_end",
-            "is_ramp",
-            "is_2000s",
-            "is_1000s",
-            "is_500s",
-            "is_200s",
-            "is_100s",
-            "label",
-        ]
-    ].to_dict("records") == [
-        {
-            "is_start": True,
-            "is_end": False,
-            "is_ramp": False,
-            "is_2000s": False,
-            "is_1000s": False,
-            "is_500s": False,
-            "is_200s": False,
-            "is_100s": False,
-            "label": "01S-0333/01.40-D",
-        },
-        {
-            "is_start": False,
-            "is_end": False,
-            "is_ramp": False,
-            "is_2000s": True,
-            "is_1000s": True,
-            "is_500s": True,
-            "is_200s": True,
-            "is_100s": True,
-            "label": "01S-0333/02.00-D",
-        },
-        {
-            "is_start": False,
-            "is_end": False,
-            "is_ramp": False,
-            "is_2000s": False,
-            "is_1000s": True,
-            "is_500s": True,
-            "is_200s": True,
-            "is_100s": True,
-            "label": "01S-0333/03.00-D",
-        },
-        {
-            "is_start": False,
-            "is_end": False,
-            "is_ramp": False,
-            "is_2000s": True,
-            "is_1000s": True,
-            "is_500s": True,
-            "is_200s": True,
-            "is_100s": True,
-            "label": "01S-0333/04.00-D",
-        },
-        {
-            "is_start": False,
-            "is_end": True,
-            "is_ramp": False,
-            "is_2000s": False,
-            "is_1000s": False,
-            "is_500s": False,
-            "is_200s": False,
-            "is_100s": False,
-            "label": "01S-0333/04.13-D",
-        },
-        {
-            "is_start": True,
-            "is_end": False,
-            "is_ramp": True,
-            "is_2000s": True,
-            "is_1000s": True,
-            "is_500s": True,
-            "is_200s": True,
-            "is_100s": True,
-            "label": "01S-0333/00.00-R2",
-        },
-        {
-            "is_start": False,
-            "is_end": True,
-            "is_ramp": True,
-            "is_2000s": False,
-            "is_1000s": False,
-            "is_500s": False,
-            "is_200s": False,
-            "is_100s": False,
-            "label": "01S-0333/00.25-R2",
-        },
-    ]
+    df = build_chainage_layer(
+        centreline,
+        road_id=1845,
+        length_m=10,
+        width_m=15 + 6,
+        offset_m=-6,
+        label_width_m=2,
+        label_offset_m=18,
+    )
+    assert len(df) == 200
+    assert (
+        df.loc[df["label"].isnull(), "wkt"]
+        .apply(lambda x: x.length == pytest.approx(21.0, 1))
+        .all()
+    )
+    assert (
+        df.loc[~df["label"].isnull(), "wkt"]
+        .apply(lambda x: x.length == pytest.approx(2.0, 1))
+        .all()
+    )
+    assert set(df.columns) == {
+        "start_m",
+        "is_start",
+        "is_end",
+        "end_m",
+        "road_id",
+        "sh_state_hway",
+        "sh_ref_station_no",
+        "sh_direction",
+        "sh_element_type",
+        "sh_ramp_no",
+        "is_ramp",
+        "is_2000s",
+        "is_1000s",
+        "is_500s",
+        "is_200s",
+        "is_100s",
+        "is_50s",
+        "is_20s",
+        "is_10s",
+        "label",
+        "wkt",
+    }
 
 
 def test_build_limited_centreline(centreline):

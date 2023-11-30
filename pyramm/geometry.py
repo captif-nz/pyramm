@@ -412,22 +412,60 @@ def build_chainage_layer(
     centreline,
     road_id: Union[int, list],
     length_m: int = 1000,
-    width_m: int = 300,
+    width_m: int = 150,
+    offset_m: int = 0,
+    label_width_m: int = 20,
+    label_offset_m: int = 180,
 ):
     selected = _extract_centreline(centreline, road_id)
     chainage_base = centreline.append_geometry(
         _build_chainage_base_table(selected, length_m)
     )
-    return build_label_layer(chainage_base, width_m)
+    return build_label_layer(
+        chainage_base,
+        width_m=width_m,
+        offset_m=offset_m,
+        label_width_m=label_width_m,
+        label_offset_m=label_offset_m,
+    )
 
 
-def build_label_layer(df, width_m=300):
+def build_label_layer(
+    df,
+    width_m=150,
+    offset_m=0,
+    label_width_m=20,
+    label_offset_m=180,
+):
     df = df.copy()
+
+    # Set ramp direction to increasing:
+    df.loc[df["sh_element_type"] == "RMP", "sh_direction"] = "I"
+
+    # Copy df for labels:
+    df_labels = df.copy()
+
+    # Convert to perpendicular geometry, with an offset for labels:
+    for ii, row in df_labels.iterrows():
+        df_labels.loc[ii, "wkt"] = _generate_perpendicular_geometry(
+            linestring=loads(row["wkt"]),
+            direction=row["sh_direction"],
+            width_m=label_width_m,
+            offset_m=label_offset_m,
+        )
+
+    # Copy original, remove labels and convert to perpendicular geometry:
+    df = df.copy()
+    df["label"] = None
     for ii, row in df.iterrows():
         df.loc[ii, "wkt"] = _generate_perpendicular_geometry(
-            loads(row["wkt"]), row["sh_direction"], width_m
+            linestring=loads(row["wkt"]),
+            direction=row["sh_direction"],
+            width_m=width_m,
+            offset_m=offset_m,
         )
-    return df
+
+    return pd.concat([df, df_labels], axis=0, ignore_index=True)
 
 
 def build_partial_centreline(centreline, roadnames, lengths: dict):
@@ -457,18 +495,23 @@ def build_partial_centreline(centreline, roadnames, lengths: dict):
     return Centreline(df)
 
 
-def _generate_perpendicular_geometry(linestring, direction, width_m):
-    points = [np.array(pp) for pp in zip(*linestring.xy)]
-    pt1, pt2 = points[0], points[-1]
-    m = -1 / ((pt2[1] - pt1[1]) / (pt2[0] - pt1[0]))
-    theta = np.arctan(m)
-    dx = width_m * np.cos(theta)
-    dy = width_m * np.sin(theta)
+def _generate_perpendicular_geometry(linestring, direction, width_m, offset_m=0):
+    if linestring is None:
+        return None
+
+    points = np.array([np.array(pp) for pp in zip(*linestring.xy)])
+
+    direction_vector = points[1] - points[0]
+    direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    perp_direction_vector = np.array([-direction_vector[1], direction_vector[0]])
     if direction == "D":
-        pt3 = pt1 - np.array([dx, dy])
-    else:
-        pt3 = pt1 + np.array([dx, dy])
-    return LineString([pt1, pt3])
+        perp_direction_vector = -perp_direction_vector
+
+    pt1 = points[0] + perp_direction_vector * offset_m
+    pt2 = points[0] + perp_direction_vector * (offset_m + width_m)
+
+    return LineString([pt1, pt2])
 
 
 def _build_chainage_base_table(
