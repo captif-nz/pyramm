@@ -7,6 +7,7 @@ from pyramm.geometry import (
     build_partial_centreline,
     combine_continuous_segments,
     build_chainage_layer,
+    build_viewport_layer,
 )
 
 
@@ -116,6 +117,16 @@ def test_build_chainage_layer(centreline):
         "label",
         "wkt",
     }
+
+
+def test_build_viewport_layer(centreline):
+    df = build_viewport_layer(
+        centreline,
+        road_id=1845,
+        length_m=300,
+        extend_m=0,
+    )
+    assert len(df) == 4
 
 
 def test_build_limited_centreline(centreline):

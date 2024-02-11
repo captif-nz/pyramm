@@ -468,6 +468,184 @@ def build_label_layer(
     return pd.concat([df, df_labels], axis=0, ignore_index=True)
 
 
+def _build_viewport_base_table(selected, width_m):
+    groupby = [
+        "road_id",
+        "sh_state_hway",
+        "sh_ref_station_no",
+        "sh_direction",
+        "sh_element_type",
+        "sh_ramp_no",
+    ]
+    df = pd.DataFrame()
+    for vv, gg in selected.groupby(groupby, dropna=False):
+        if vv[groupby.index("sh_element_type")] == "RND":
+            continue
+
+        start_m, end_m = _carrway_start_end_m(gg)
+        start_m_adj = np.ceil(start_m / width_m) * width_m
+
+        records = [
+            {"start_m": int(xx)}
+            for xx in np.arange(start_m_adj, end_m - width_m, width_m)
+        ]
+
+        df_ = pd.DataFrame(records).sort_values("start_m").reset_index(drop=True)
+        df_["end_m"] = df_["start_m"] + width_m
+
+        # Add the first viewport base line (if missing):
+        if start_m_adj != start_m:
+            df_ = pd.concat(
+                [
+                    pd.DataFrame(
+                        [{"start_m": int(start_m), "end_m": int(start_m_adj)}]
+                    ),
+                    df_,
+                ],
+                axis=0,
+                ignore_index=True,
+            )
+
+        # Add the last viewport base line:
+        df_ = pd.concat(
+            [
+                df_,
+                pd.DataFrame(
+                    [
+                        {
+                            "start_m": df_.iloc[-1]["end_m"],
+                            "end_m": int(end_m),
+                        }
+                    ]
+                ),
+            ],
+            axis=0,
+            ignore_index=True,
+        )
+
+        for ii, column in enumerate(groupby):
+            df_[column] = vv[ii]
+
+        df = pd.concat([df, df_], ignore_index=True)
+
+    df["is_ramp"] = ~df["sh_ramp_no"].isnull()
+    df["is_end"] = False
+    df["label"] = _generate_rsrp_labels(df)
+    df.drop(columns=["is_end"], inplace=True)
+
+    return df
+
+
+def _calculate_viewport_base_rotation(linestring):
+    if linestring is None:
+        return None
+
+    direction_vector = np.array(linestring.coords[1]) - np.array(linestring.coords[0])
+    direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    return np.arctan2(direction_vector[1], direction_vector[0]) * 180 / np.pi - 180
+
+
+def _extend_line(linestring, extend_m):
+    if linestring is None:
+        return None
+
+    direction_vector = np.array(linestring.coords[1]) - np.array(linestring.coords[0])
+    direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    pt1 = np.array(linestring.coords[0]) - direction_vector * extend_m
+    pt2 = np.array(linestring.coords[1]) + direction_vector * extend_m
+
+    return LineString([pt1, pt2])
+
+
+def _offset_line(linestring, offset_m):
+    if linestring is None:
+        return None
+
+    direction_vector = np.array(linestring.coords[1]) - np.array(linestring.coords[0])
+    direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    perp_direction_vector = np.array([-direction_vector[1], direction_vector[0]])
+
+    pt1 = np.array(linestring.coords[0]) + perp_direction_vector * offset_m
+    pt2 = np.array(linestring.coords[1]) + perp_direction_vector * offset_m
+
+    return LineString([pt1, pt2])
+
+
+def _generate_viewport_geometry(linestring, length_m):
+    if linestring is None:
+        return None
+
+    midpoint = np.array(linestring.interpolate(0.5, normalized=True).xy).T[0]
+    points = np.array([np.array(pp) for pp in zip(*linestring.xy)])
+    width_m = length_m * (297 / 420)  # A3 paper ratio
+
+    direction_vector = points[1] - points[0]
+    direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    perp_direction_vector = np.array([-direction_vector[1], direction_vector[0]])
+
+    pt1 = (
+        midpoint
+        + (perp_direction_vector * width_m / 2)
+        + (direction_vector * length_m / 2)
+    )
+    pt2 = (
+        midpoint
+        + (perp_direction_vector * width_m / 2)
+        - (direction_vector * length_m / 2)
+    )
+    pt3 = (
+        midpoint
+        - (perp_direction_vector * width_m / 2)
+        - (direction_vector * length_m / 2)
+    )
+    pt4 = (
+        midpoint
+        - (perp_direction_vector * width_m / 2)
+        + (direction_vector * length_m / 2)
+    )
+
+    return Polygon([pt1, pt2, pt3, pt4])
+
+
+def build_viewport_layer(
+    centreline,
+    road_id: Union[int, list],
+    length_m: int = 1000,
+    offset_m: int = 0,
+    extend_m: int = 0,
+):
+    selected = _extract_centreline(centreline, road_id)
+    viewport_base = centreline.append_geometry(
+        _build_viewport_base_table(selected, length_m),
+        ends_only=True,
+    )
+    viewport_base["wkt"] = viewport_base["wkt"].apply(loads)
+
+    # Calculate viewport base line rotation:
+    viewport_base["rotation"] = viewport_base["wkt"].apply(
+        _calculate_viewport_base_rotation
+    )
+
+    # Extend viewport base lines by extend_m on each side:
+    viewport_base["wkt"] = viewport_base["wkt"].apply(_extend_line, extend_m=extend_m)
+
+    # Offset viewport base lines by offset_m:
+    viewport_base["wkt"] = viewport_base["wkt"].apply(_offset_line, offset_m=offset_m)
+
+    # Append viewport geometry:
+    viewport = viewport_base.copy()
+    viewport["wkt"] = viewport["wkt"].apply(
+        _generate_viewport_geometry,
+        length_m=length_m + (extend_m * 2),
+    )
+
+    return viewport
+
+
 def build_partial_centreline(centreline, roadnames, lengths: dict):
     df_features = centreline._df_features
 
