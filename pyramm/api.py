@@ -60,6 +60,7 @@ class Connection:
             username=username, password=password, database=database
         )
 
+        self.database = database
         self.headers = {
             "Content-type": "application/json",
             "referer": "https://test.com",
