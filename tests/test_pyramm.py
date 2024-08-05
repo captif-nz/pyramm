@@ -8,7 +8,7 @@ from pyramm.geometry import Centreline
 
 
 def test_version():
-    assert pyramm.__version__ == "1.34"
+    assert pyramm.__version__ == "1.35"
 
 
 def test_parse_filters():
