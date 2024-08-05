@@ -69,6 +69,10 @@ class TestConnection:
         selected = conn.carr_way(road_id)
         assert set(selected.index) == set(df.index)
 
+    def test_get_table_summary(self, conn):
+        result = conn.get_table_summary("carr_way")
+        assert isinstance(result, pd.DataFrame)
+
 
 class TestCentreline:
     def test_centreline(self, centreline):

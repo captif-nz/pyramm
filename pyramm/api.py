@@ -101,18 +101,26 @@ class Connection:
         take=1,
         get_geometry=False,
         expand_lookups=False,
+        return_entity_id=False,
+        load_type="All",
+        columns=[],
     ):
-        return {
+        body = {
             "filters": filters,
             "expandLookups": expand_lookups,
             "getGeometry": get_geometry,
             "isLongitudeLatitude": True,
             "gridPaging": {"skip": skip, "take": take},
             "excludeReplacedData": True,
-            "returnEntityId": False,
+            "returnEntityId": return_entity_id,
             "tableName": table_name,
-            "loadType": "All",
+            "loadType": load_type,
         }
+
+        if len(columns) > 0:
+            body["columns"] = columns
+
+        return body
 
     def _query(self, table_name, filters=[], skip=0, take=1, get_geometry=False):
         return self._post(
@@ -166,6 +174,8 @@ class Connection:
             {'columnName': 'latest', 'operator': 'EqualTo', 'value': 'L'}
 
         """
+        threads = 1 if threads < 1 else threads
+
         if get_geometry:
             get_geometry = [False, get_geometry][self._geometry_table(table_name)]
 
@@ -177,7 +187,7 @@ class Connection:
         total_rows = self._rows(table_name, filters)
         if total_rows == 0:
             logger.info(f"no rows to retrieve from {table_name}")
-            return DataFrame(columns=column_names)
+            return DataFrame()
 
         logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
         logger.debug(f"using {threads} threads")
@@ -190,7 +200,6 @@ class Connection:
                 table_name=table_name,
                 filters=filters,
                 get_geometry=get_geometry,
-                column_names=column_names,
                 start_row=int(rr),
                 end_row=int(rr + rows_per_thread),
                 chunk_size=self.chunk_size,
@@ -209,13 +218,44 @@ class Connection:
         get_geometry: bool = False,
         threads: int = 4,
     ):
-        threads = 1 if threads < 1 else threads
         return self._get_data(
             table_name,
             filters=parse_filters(road_id, latest),
             get_geometry=get_geometry,
             threads=threads,
         )
+
+    def get_table(self, table_name, threads: int = 4):
+        return self._get_data(
+            table_name,
+            get_geometry=True,
+            threads=threads,
+        )
+
+    def get_table_summary(self, table_name):
+        columns = ["id", "added_on", "added_by", "chgd_on", "chgd_by"]
+        body = self._request_body(
+            table_name=table_name,
+            take=1,
+            return_entity_id=True,
+            load_type="Specified",
+            columns=columns,
+        )
+
+        try:
+            # Try to get the summary data using the specified columns:
+            data = self._post("/data/table", body)
+        except RequestError:
+            # If that fails, get the summary data using the Core load type:
+            del body["columns"]
+            body["loadType"] = "Core"
+            data = self._post("/data/table", body)
+
+        df = DataFrame(
+            [rr["values"] for rr in data["rows"]],
+            columns=data["columns"],
+        )
+        return df[[cc for cc in df.columns if cc in columns]]
 
     def column_names(self, table_name):
         return self.table_schema(table_name).column_names()
