@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["CAPTIF", "RAMM"]
 
 [tool.poetry.dependencies]
-python = "<3.12,>=3.8"
+python = "^3.9"
 requests = "^2.25.0"
 unsync = "^1.4.0"
 frozendict = "^2.3.2"
