@@ -167,6 +167,9 @@ class TestTopSurface:
             )
             assert new.equals(expected)
 
+        @pytest.mark.skip(
+            reason="top_surface table no longer contains full_width_flag = Y"
+        )
         def test_build_top_surface_real_table(self, top_surface):
             top_surface_limited = top_surface.iloc[:100]
             new = build_top_surface([top_surface_limited])
