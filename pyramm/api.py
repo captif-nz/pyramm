@@ -216,6 +216,9 @@ class Connection:
         threads: int = 4,
     ):
         threads = 1 if threads < 1 else threads
+        # Check table_name is valid:
+        if table_name not in self.table_names():
+            raise ValueError(f"'{table_name}' is not a valid table name")
         return self._get_data(
             table_name,
             filters=parse_filters(road_id, latest),
