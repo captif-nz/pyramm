@@ -121,7 +121,7 @@ class Connection:
         )
 
     def _rows(self, table_name, filters=[]):
-        return self._query(table_name, filters=filters)["total"]
+        return int(self._query(table_name, filters=filters)["total"])
 
     def _geometry_table(self, table_name):
         return len(self._query(table_name, get_geometry=True)["rows"]) > 0
@@ -217,8 +217,9 @@ class Connection:
             threads=threads,
         )
 
+    @lru_cache(maxsize=10)
     def column_names(self, table_name):
-        return self.table_schema(table_name).column_names()
+        return self._query(table_name)["columns"]
 
     @lru_cache(maxsize=10)
     def table_schema(self, table_name):

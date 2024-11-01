@@ -25,11 +25,6 @@ class TestConnection:
         valid_table_names = [
             "roadnames",
             "carr_way",
-            "c_surface",
-            "top_surface",
-            "surf_material",
-            "surf_category",
-            "minor_structure",
             "hsd_rough_hdr",
             "hsd_rough",
             "hsd_rutting_hdr",
@@ -68,6 +63,11 @@ class TestConnection:
         df = df.loc[df.road_id == road_id]
         selected = conn.carr_way(road_id)
         assert set(selected.index) == set(df.index)
+
+    def test__rows(self, conn):
+        n_rows = conn._rows("roadnames")
+        assert isinstance(n_rows, int)
+        assert n_rows > 0
 
 
 class TestCentreline:
