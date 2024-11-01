@@ -1,5 +1,6 @@
 from time import sleep
 from typing import Optional
+import warnings
 from requests import get, post
 from urllib.parse import urlencode
 from numpy import arange, ceil
@@ -148,13 +149,18 @@ class Connection:
                 take=chunk_size,
                 get_geometry=get_geometry,
             )["rows"]
-            df = concat(
-                [
-                    df,
-                    DataFrame([rr["values"] for rr in response], columns=column_names),
-                ],
-                ignore_index=True,
-            )
+
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                df = concat(
+                    [
+                        df,
+                        DataFrame(
+                            [rr["values"] for rr in response], columns=column_names
+                        ),
+                    ],
+                    ignore_index=True,
+                )
         return df
 
     def _get_data(self, table_name, filters=[], get_geometry=False, threads=4):
