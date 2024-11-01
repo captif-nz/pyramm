@@ -20,7 +20,7 @@ from shapely.geometry import (
 from shapely.geometry.base import BaseGeometry
 from typing import List, Literal, Optional, Union
 
-from pyramm.helpers import _records_to_grid, _extract_records_from_grid
+from pyramm.helpers import _cross2d, _records_to_grid, _extract_records_from_grid
 
 
 ROADNAME_COLUMNS = [
@@ -223,11 +223,11 @@ class Centreline(object):
         carr_way_no = df_points.iloc[ii[0]]["id"]
 
         # Calculate offset distance:
-        p1 = np.array(df_points.iloc[ii[0]]["geometry"].coords)
-        p2 = np.array(df_points.iloc[ii[1]]["geometry"].coords)
-        p3 = np.array(point.coords)
+        p1 = np.array(df_points.iloc[ii[0]]["geometry"].coords)[0]
+        p2 = np.array(df_points.iloc[ii[1]]["geometry"].coords)[0]
+        p3 = np.array(point.coords)[0]
 
-        offset_m = (np.abs(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1))[0]
+        offset_m = np.abs(_cross2d(p2 - p1, p1 - p3)) / norm(p2 - p1)
 
         return carr_way_no, offset_m
 

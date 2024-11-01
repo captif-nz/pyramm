@@ -9,29 +9,28 @@ readme = "README.md"
 keywords = ["CAPTIF", "RAMM"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-requests = "^2.25.0"
+python = "^3.10"
+requests = "^2.32.3"
 unsync = "^1.4.0"
-frozendict = "^2.3.2"
-geopandas = "<1.0,>=0.13.0"
-pandas = "^2.0.1"
-numpy = "^1.24.3"
-scipy = "^1.10.1"
-shapely = "^2.0.1"
-pyproj = "^3.5.0"
+frozendict = "^2.4.6"
+geopandas = "^1.0.1"
+pandas = "^2.2.3"
+numpy = "^2.1.2"
+scipy = "^1.14.1"
+shapely = "^2.0.6"
+pyproj = "^3.7.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.1.2"
-pre-commit = "^2.9.2"
-black = "^23.3.0"
-pytest-cov = "^3.0.0"
-flake8 = "^4.0.1"
-pytest-randomly = "^3.12.0"
+pytest = "^8.3.3"
+pre-commit = "^4.0.1"
+black = "^24.10.0"
+pytest-cov = "^6.0.0"
+flake8 = "^7.1.1"
+pytest-randomly = "^3.16.0"
 
 [tool.poetry.group.dev.dependencies]
-ipykernel = "^6.23.2"
-jupyterlab = "^4.0.2"
-matplotlib = "^3.7.1"
+ipykernel = "^6.29.5"
+matplotlib = "^3.9.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

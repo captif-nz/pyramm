@@ -44,3 +44,7 @@ def _extract_records_from_grid(grid):
         results_dict["start_m"].append(ii_start)
         results_dict["end_m"].append(ii_end + 1)
     return pd.DataFrame(results_dict)
+
+
+def _cross2d(x, y):
+    return x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
