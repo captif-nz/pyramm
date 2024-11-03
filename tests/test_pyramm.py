@@ -1,3 +1,4 @@
+from datetime import date
 import pytest
 import pandas as pd
 from shapely.geometry.point import Point
@@ -64,10 +65,22 @@ class TestConnection:
         selected = conn.carr_way(road_id)
         assert set(selected.index) == set(df.index)
 
+    def test_ud_surface_layer(self, conn):
+        df = conn.get_data("ud_surface_layer")
+        assert isinstance(df, pd.DataFrame)
+
     def test__rows(self, conn):
         n_rows = conn._rows("roadnames")
         assert isinstance(n_rows, int)
         assert n_rows > 0
+
+    def test_get_changes(self, conn):
+        changes = conn.get_changes(
+            "carr_way",
+            start_date=date(2024, 10, 1),
+            end_date=date(2024, 11, 1),
+        )
+        assert isinstance(changes, pd.DataFrame)
 
 
 class TestCentreline:

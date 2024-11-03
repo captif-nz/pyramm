@@ -1,3 +1,5 @@
+import numpy as np
+from datetime import datetime, timedelta
 from time import sleep
 from typing import Optional
 import warnings
@@ -9,7 +11,7 @@ from functools import lru_cache
 from os import environ
 from unsync import unsync
 
-from pyramm.cache import file_cache, freezeargs
+from pyramm.cache import file_cache, freezeargs, sqlite_cache
 from pyramm.config import config
 from pyramm.logging import logger
 from pyramm.tables import (
@@ -206,6 +208,7 @@ class Connection:
         return concat([tt.result() for tt in tasks], ignore_index=True)
 
     @lru_cache(maxsize=10)
+    @sqlite_cache()
     @file_cache()
     def get_data(
         self,
@@ -225,6 +228,42 @@ class Connection:
             get_geometry=get_geometry,
             threads=threads,
         )
+
+    def _get_changes(self, table_name, start_date, end_date, road_id=None):
+        dates = [
+            dd.astype(datetime)
+            for dd in np.arange(start_date, end_date, timedelta(days=1))
+        ]
+
+        records = []
+        for start_date_ in dates:
+            end_date_ = start_date_ + timedelta(days=1)
+            response = self._post(
+                "data/changes",
+                {
+                    "changeStartDateTime": start_date_.isoformat(),
+                    "changeEndDateTime": end_date_.isoformat(),
+                    # "gridPaging": {"skip": 0, "take": 1},
+                    "getGeometry": self._geometry_table(table_name),
+                    "tableName": table_name,
+                    "loadType": "All",
+                },
+            )
+            records.append(
+                {
+                    "date": end_date_,
+                    "changes": response,
+                }
+            )
+        return records
+
+    def get_changes(self, table_name, start_date, end_date, road_id=None):
+        # Check table_name is valid:
+        if table_name not in self.table_names():
+            raise ValueError(f"'{table_name}' is not a valid table name")
+
+        changes = self._get_changes(table_name, start_date, end_date, road_id)
+        return changes
 
     @lru_cache(maxsize=10)
     def column_names(self, table_name):
