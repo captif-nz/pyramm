@@ -19,5 +19,5 @@ def roadnames(conn):
 
 
 @pytest.fixture(scope="session")
-def top_surface(conn):
-    return conn.top_surface()
+def surface_structure_cleaned(conn):
+    return conn.surface_structure_cleaned()
