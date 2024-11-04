@@ -3,7 +3,7 @@ import pandas as pd
 from shapely.geometry.point import Point
 
 import pyramm
-from pyramm.api import parse_filters
+from pyramm.api import TableRemovedError, parse_filters
 from pyramm.geometry import Centreline
 
 
@@ -69,6 +69,13 @@ class TestConnection:
         assert isinstance(n_rows, int)
         assert n_rows > 0
 
+    def test_top_surface(self, conn):
+        """
+        top_surface is no longer available following upgrade to AMDS.
+        """
+        with pytest.raises(TableRemovedError):
+            conn.top_surface()
+
 
 class TestCentreline:
     def test_centreline(self, centreline):
@@ -108,8 +115,8 @@ class TestCentreline:
         df = centreline.append_geometry(df)
         assert "wkt" in df.columns
 
-    def test_append_geometry_fast(self, centreline, top_surface):
-        df = top_surface.reset_index().iloc[:100]
+    def test_append_geometry_fast(self, centreline, surface_structure_cleaned):
+        df = surface_structure_cleaned.reset_index().iloc[:100]
         df = centreline.append_geometry(df)
         assert "wkt" in df.columns
 

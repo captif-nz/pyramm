@@ -11,6 +11,7 @@ DEFAULT_DATE_COLUMNS = ["added_on", "chgd_on"]
 class BaseTable:
     table_name = None
     index_name = None
+    filters = []
     get_geometry = False
     date_columns = []
 
@@ -29,7 +30,11 @@ class BaseTable:
 
     def _get_data(self, ramm, road_id, latest):
         self.df = ramm.get_data(
-            self.table_name, road_id, latest, self.get_geometry
+            self.table_name,
+            road_id,
+            latest,
+            self.get_geometry,
+            filters=self.filters,
         ).copy()
         if "wkt" in self.df.columns:
             # Drop lines with missing geometry:
@@ -85,31 +90,38 @@ class Carrway(BaseTable):
     get_geometry = True
 
 
-class CSurface(BaseTable):
-    table_name = "c_surface"
+class SurfaceLayer(BaseTable):
+    table_name = "ud_surface_layer"
     index_name = ""
 
 
-class TopSurface(BaseTable):
-    table_name = "top_surface"
-    index_name = ["road_id", "start_m", "end_m"]
-    date_columns = ["surface_date"]
+class SurfaceStructureDetailed(BaseTable):
+    table_name = "ud_surface_structure"
+    index_name = ""
+    filters = [
+        {
+            "columnName": "surf_structure_set",
+            "operator": "EqualTo",
+            "value": "D",
+        }
+    ]
 
 
-class SurfMaterial(BaseTable):
-    table_name = "surf_material"
-    index_name = "surf_material"
+class SurfaceStructureCleaned(BaseTable):
+    table_name = "ud_surface_structure"
+    index_name = ""
+    filters = [
+        {
+            "columnName": "surf_structure_set",
+            "operator": "EqualTo",
+            "value": "T",
+        }
+    ]
 
 
-class SurfCategory(BaseTable):
-    table_name = "surf_category"
-    index_name = "surf_category"
-
-
-class MinorStructure(BaseTable):
-    table_name = "minor_structure"
-    index_name = "minor_structure_id"
-    get_geometry = True
+class SurfMaterialType(BaseTable):
+    table_name = "surf_material_type"
+    index_name = ""
 
 
 class HsdTable(BaseTable):
