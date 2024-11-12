@@ -300,7 +300,7 @@ class Connection:
     def surf_material(self):
         raise TableRemovedError(
             "surf_material is no longer available following the AMDS upgrade, "
-            "use 'surf_material_type' instead."
+            "use 'surface_material_type' instead."
         )
 
     def surface_material_type(self):
