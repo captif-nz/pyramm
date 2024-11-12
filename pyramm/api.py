@@ -14,6 +14,7 @@ from pyramm.config import config
 from pyramm.logging import logger
 from pyramm.tables import (
     SurfaceLayer,
+    SurfaceMaterialType,
     SurfaceStructureCleaned,
     SurfaceStructureDetailed,
     TableSchema,
@@ -301,6 +302,9 @@ class Connection:
             "surf_material is no longer available following the AMDS upgrade, "
             "use 'surf_material_type' instead."
         )
+
+    def surface_material_type(self):
+        return SurfaceMaterialType(self).df
 
     def surf_category(self):
         raise TableRemovedError(

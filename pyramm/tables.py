@@ -119,8 +119,8 @@ class SurfaceStructureCleaned(BaseTable):
     ]
 
 
-class SurfMaterialType(BaseTable):
-    table_name = "surf_material_type"
+class SurfaceMaterialType(BaseTable):
+    table_name = "ud_surface_material_type"
     index_name = ""
 
 
