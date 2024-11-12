@@ -34,7 +34,7 @@ class BaseTable:
             road_id,
             latest,
             self.get_geometry,
-            filters=self.filters,
+            filters=self.filters.copy(),
         ).copy()
         if "wkt" in self.df.columns:
             # Drop lines with missing geometry:
