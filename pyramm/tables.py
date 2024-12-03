@@ -90,6 +90,17 @@ class Carrway(BaseTable):
     get_geometry = True
 
 
+class CSurface(BaseTable):
+    table_name = "c_surface"
+    index_name = ""
+
+
+class TopSurface(BaseTable):
+    table_name = "top_surface"
+    index_name = ["road_id", "start_m", "end_m"]
+    date_columns = ["surface_date"]
+
+
 class SurfaceLayer(BaseTable):
     table_name = "ud_surface_layer"
     index_name = ""
