@@ -56,6 +56,11 @@ class Connection:
             "RAMM", "PASSWORD", fallback=environ.get("RAMM_PASSWORD")
         ),
         database="SH New Zealand",
+        skip_table_name_check=config().get(
+            "RAMM",
+            "SKIP_TABLE_NAME_CHECK",
+            fallback=environ.get("SKIP_TABLE_NAME_CHECK", False),
+        ),
     ):
         if username is None:
             username, password = self._get_credentials()
@@ -70,6 +75,7 @@ class Connection:
             "referer": "https://test.com",
             "Authorization": f"Bearer {authorization_key}",
         }
+        self.skip_table_name_check = skip_table_name_check
 
     @staticmethod
     def _get_credentials():
@@ -219,7 +225,7 @@ class Connection:
     ):
         threads = 1 if threads < 1 else threads
         # Check table_name is valid:
-        if table_name not in self.table_names():
+        if not self.skip_table_name_check and table_name not in self.table_names():
             raise ValueError(f"'{table_name}' is not a valid table name")
         return self._get_data(
             table_name,

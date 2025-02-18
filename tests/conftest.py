@@ -5,7 +5,7 @@ from pyramm.api import Connection
 
 @pytest.fixture(scope="session")
 def conn():
-    return Connection()
+    return Connection(skip_table_name_check=True)
 
 
 @pytest.fixture(scope="session")
