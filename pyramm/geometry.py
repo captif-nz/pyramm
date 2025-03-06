@@ -117,7 +117,14 @@ class Centreline(object):
         )
         self._df_points = None
         self._kdtree = None
-        self._geometry = MultiLineString(self._df_features["geometry"].to_list())
+
+        # Only use rows with LineString geometry:
+        is_linestring = self._df_features["geometry"].apply(
+            lambda x: isinstance(x, LineString)
+        )
+        self._geometry = MultiLineString(
+            self._df_features.loc[is_linestring, "geometry"].to_list()
+        )
 
     def _build_kdtree(self):
         self._df_points = _build_point_layer(self._df_features)
