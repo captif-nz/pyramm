@@ -91,5 +91,5 @@ def _reset_surface_table_index(df):
 def _fix_na_columns(df):
     for cc in df.columns:
         fill_value = 0 if df[cc].dtype.type == np.float64 else ""
-        df[cc].fillna(fill_value, inplace=True)
+        df[cc] = df[cc].fillna(fill_value)
     return df
