@@ -1,6 +1,5 @@
 from time import sleep
 from typing import Optional
-import warnings
 from requests import get, post
 from urllib.parse import urlencode
 from numpy import arange, ceil
@@ -158,18 +157,14 @@ class Connection:
                 get_geometry=get_geometry,
             )
 
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                df = concat(
-                    [
-                        df,
-                        DataFrame(
-                            [rr["values"] for rr in response["rows"]],
-                            columns=response["columns"],
-                        ),
-                    ],
-                    ignore_index=True,
-                )
+            df_ = DataFrame(
+                [rr["values"] for rr in response["rows"]],
+                columns=response["columns"],
+            )
+            valid_columns = [cc for cc in df_.columns if df_[cc].notnull().any()]
+            df_ = df_[valid_columns]
+            df = concat([df, df_], ignore_index=True)
+
         return df.rename(columns={"geometry": "wkt"})
 
     def _get_data(self, table_name, filters=[], get_geometry=False, threads=4):
