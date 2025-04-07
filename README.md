@@ -80,19 +80,13 @@ roadnames = conn.roadnames()
 carrway = conn.carr_way(road_id=None)
 ```
 ```python
-c_surface = conn.c_surface(road_id=None)
+surface_layer = conn.surface_layer(road_id=None)
 ```
 ```python
-top_surface = conn.top_surface()
+surface_structure_cleaned = conn.surface_structure_cleaned()
 ```
 ```python
-surf_material = conn.surf_material()
-```
-```python
-surf_category = conn.surf_category()
-```
-```python
-minor_structure = conn.minor_structure()
+surf_material_type = conn.surf_material_type()
 ```
 
 ### HSD tables:

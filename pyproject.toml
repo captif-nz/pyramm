@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyramm"
-version = "1.35"
+version = "1.42"
 description = "Provides a wrapper to the RAMM API and additional tools for positional referencing"
 authors = ["John Bull"]
 homepage = "https://github.com/captif-nz/pyramm"
@@ -14,8 +14,8 @@ requests = "^2.32.3"
 unsync = "^1.4.0"
 frozendict = "^2.4.6"
 geopandas = "^1.0.1"
-pandas = "^2.2.3"
-numpy = "^2.1.2"
+pandas = "^2.1"
+numpy = "^1.26"
 scipy = "^1.14.1"
 shapely = "^2.0.6"
 pyproj = "^3.7.0"

@@ -14,11 +14,11 @@ from pyramm.geometry import (
 @pytest.mark.parametrize(
     "point,lengths,road_id,position_m",
     [
-        (Point((172.608406, -43.451023)), {3656: None}, 3656, 179.462),
+        (Point((172.608406, -43.451023)), {3656: None}, 3656, 179.47),
         (Point((172.608406, -43.451023)), {3656: None, 3654: None}, 3654, 241.879),
         (Point((172.608406, -43.451023)), {3656: [10, 100]}, 3656, 100),
         (Point((172.608406, -43.451023)), {3656: [200, None]}, 3656, 200),
-        (Point((172.631957, -43.436542)), {1716: None}, 1716, 3371.371),
+        (Point((172.631957, -43.436542)), {1716: None}, 1716, 3369.934),
     ],
 )
 def test_build_partial_centreline(
@@ -151,7 +151,7 @@ def test_nearest_feature_kdtree(centreline):
         method="kdtree",
     )
     assert carr_way_no == 11263
-    assert round(offset_m, 1) == 26.1
+    assert round(offset_m, 1) == 27.0
     assert limited_centreline._kdtree is not None
 
 
@@ -161,7 +161,7 @@ def test_nearest_feature_shortest_line(centreline):
         method="shortest line",
     )
     assert carr_way_no == 11263
-    assert round(offset_m, 1) == 26.1
+    assert round(offset_m, 1) == 27.0
 
 
 def test_nearest_feature_shortest_line_road_id(centreline):

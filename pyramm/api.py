@@ -2,7 +2,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Optional
-import warnings
 from requests import get, post
 from urllib.parse import urlencode
 from numpy import arange, ceil
@@ -11,18 +10,17 @@ from functools import lru_cache
 from os import environ
 from unsync import unsync
 
-from pyramm.cache import file_cache, freezeargs, sqlite_cache
+from pyramm.cache import file_cache, freezeargs
 from pyramm.config import config
 from pyramm.logging import logger
 from pyramm.tables import (
+    SurfaceLayer,
+    SurfaceMaterialType,
+    SurfaceStructureCleaned,
+    SurfaceStructureDetailed,
     TableSchema,
     Roadnames,
     Carrway,
-    CSurface,
-    TopSurface,
-    SurfMaterial,
-    SurfCategory,
-    MinorStructure,
     HsdRoughness,
     HsdRoughnessHdr,
     HsdRutting,
@@ -42,6 +40,10 @@ class LoginError(Exception):
     pass
 
 
+class TableRemovedError(Exception):
+    pass
+
+
 class Connection:
     url = "https://apps.ramm.co.nz/RammApi6.1/v1"
     chunk_size = 2000
@@ -55,6 +57,11 @@ class Connection:
             "RAMM", "PASSWORD", fallback=environ.get("RAMM_PASSWORD")
         ),
         database="SH New Zealand",
+        skip_table_name_check=config().get(
+            "RAMM",
+            "SKIP_TABLE_NAME_CHECK",
+            fallback=environ.get("SKIP_TABLE_NAME_CHECK", False),
+        ),
     ):
         if username is None:
             username, password = self._get_credentials()
@@ -69,6 +76,7 @@ class Connection:
             "referer": "https://test.com",
             "Authorization": f"Bearer {authorization_key}",
         }
+        self.skip_table_name_check = skip_table_name_check
 
     @staticmethod
     def _get_credentials():
@@ -135,7 +143,6 @@ class Connection:
         table_name,
         filters,
         get_geometry,
-        column_names,
         start_row,
         end_row,
         chunk_size,
@@ -150,20 +157,17 @@ class Connection:
                 skip=skip,
                 take=chunk_size,
                 get_geometry=get_geometry,
-            )["rows"]
+            )
 
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                df = concat(
-                    [
-                        df,
-                        DataFrame(
-                            [rr["values"] for rr in response], columns=column_names
-                        ),
-                    ],
-                    ignore_index=True,
-                )
-        return df
+            df_ = DataFrame(
+                [rr["values"] for rr in response["rows"]],
+                columns=response["columns"],
+            )
+            valid_columns = [cc for cc in df_.columns if df_[cc].notnull().any()]
+            df_ = df_[valid_columns]
+            df = concat([df, df_], ignore_index=True)
+
+        return df.rename(columns={"geometry": "wkt"})
 
     def _get_data(self, table_name, filters=[], get_geometry=False, threads=4):
         """
@@ -177,14 +181,13 @@ class Connection:
         if get_geometry:
             get_geometry = [False, get_geometry][self._geometry_table(table_name)]
 
-        column_names = self.column_names(table_name)
-        if get_geometry:
-            column_names.append("wkt")
-
         # Retrieve data from the RAMM database and return a DataFrame.
         total_rows = self._rows(table_name, filters)
         if total_rows == 0:
             logger.info(f"no rows to retrieve from {table_name}")
+            column_names = self.column_names(table_name)
+            if get_geometry:
+                column_names.append("wkt")
             return DataFrame(columns=column_names)
 
         logger.info(f"retrieving {total_rows:.0f} rows from {table_name}")
@@ -198,7 +201,6 @@ class Connection:
                 table_name=table_name,
                 filters=filters,
                 get_geometry=get_geometry,
-                column_names=column_names,
                 start_row=int(rr),
                 end_row=int(rr + rows_per_thread),
                 chunk_size=self.chunk_size,
@@ -207,8 +209,7 @@ class Connection:
         ]
         return concat([tt.result() for tt in tasks], ignore_index=True)
 
-    @lru_cache(maxsize=10)
-    @sqlite_cache()
+    # @lru_cache(maxsize=10)
     @file_cache()
     def get_data(
         self,
@@ -217,14 +218,15 @@ class Connection:
         latest: bool = False,
         get_geometry: bool = False,
         threads: int = 4,
+        filters=[],
     ):
         threads = 1 if threads < 1 else threads
         # Check table_name is valid:
-        if table_name not in self.table_names():
+        if not self.skip_table_name_check and table_name not in self.table_names():
             raise ValueError(f"'{table_name}' is not a valid table name")
         return self._get_data(
             table_name,
-            filters=parse_filters(road_id, latest),
+            filters=parse_filters(road_id, latest, filters),
             get_geometry=get_geometry,
             threads=threads,
         )
@@ -314,19 +316,46 @@ class Connection:
         return Carrway(self, road_id).df
 
     def c_surface(self, road_id=None):
-        return CSurface(self, road_id).df
+        raise TableRemovedError(
+            "c_surface is no longer available following the AMDS upgrade, use "
+            "'surface_layer' instead."
+        )
+
+    def surface_layer(self, road_id=None):
+        return SurfaceLayer(self, road_id).df
 
     def top_surface(self):
-        return TopSurface(self).df
+        raise TableRemovedError(
+            "top_surface is no longer available following the AMDS upgrade, "
+            "use 'surface_structure_cleaned' instead."
+        )
+
+    def surface_structure_cleaned(self):
+        return SurfaceStructureCleaned(self).df
+
+    def surface_structure_detailed(self):
+        return SurfaceStructureDetailed(self).df
 
     def surf_material(self):
-        return SurfMaterial(self).df
+        raise TableRemovedError(
+            "surf_material is no longer available following the AMDS upgrade, "
+            "use 'surface_material_type' instead."
+        )
+
+    def surface_material_type(self):
+        return SurfaceMaterialType(self).df
 
     def surf_category(self):
-        return SurfCategory(self).df
+        raise TableRemovedError(
+            "surf_category is no longer available following the AMDS upgrade, "
+            "use 'surf_material_type' instead and extract the unique values "
+            "from the 'category' column."
+        )
 
     def minor_structure(self):
-        return MinorStructure(self).df
+        raise TableRemovedError(
+            "minor_structure is no longer available following the AMDS upgrade."
+        )
 
     def hsd_roughness_hdr(self):
         return HsdRoughnessHdr(self).df
@@ -350,8 +379,9 @@ class Connection:
         return SkidResistance(self, road_id, latest, survey_year).df
 
 
-def parse_filters(road_id=None, latest=False):
-    filters = []
+def parse_filters(road_id=None, latest=False, filters: list = None):
+    if filters is None:
+        filters = []
     if latest:
         filters.append({"columnName": "latest", "operator": "EqualTo", "value": "L"})
     if road_id:

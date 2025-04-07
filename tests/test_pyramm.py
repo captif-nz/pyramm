@@ -4,12 +4,12 @@ import pandas as pd
 from shapely.geometry.point import Point
 
 import pyramm
-from pyramm.api import parse_filters
+from pyramm.api import TableRemovedError, parse_filters
 from pyramm.geometry import Centreline
 
 
 def test_version():
-    assert pyramm.__version__ == "1.35"
+    assert pyramm.__version__ == "1.42"
 
 
 def test_parse_filters():
@@ -22,6 +22,7 @@ def test_parse_filters():
 
 
 class TestConnection:
+    @pytest.mark.skip("API end point not currently working")
     def test_table_names(self, conn):
         valid_table_names = [
             "roadnames",
@@ -82,6 +83,13 @@ class TestConnection:
         )
         assert isinstance(changes, pd.DataFrame)
 
+    def test_top_surface(self, conn):
+        """
+        top_surface is no longer available following upgrade to AMDS.
+        """
+        with pytest.raises(TableRemovedError):
+            conn.top_surface()
+
 
 class TestCentreline:
     def test_centreline(self, centreline):
@@ -97,21 +105,21 @@ class TestCentreline:
         carr_way_no, offset_m = centreline.nearest_feature(point)
 
         assert carr_way_no == 11263
-        assert round(offset_m, 1) == 26.1
+        assert round(offset_m, 1) == 27.0
 
     def test_position(self, centreline):
         point = Point((172.618567, -43.441594))
         position = centreline.position(point)
 
-        assert round(position["position_m"], 1) == 4504.9
+        assert round(position["position_m"], 1) == 4500.7
         assert position["road_id"] == 1715
-        assert round(position["search_offset_m"], 1) == 26.1
+        assert round(position["search_offset_m"], 1) == 27.0
 
     def test_position_with_road_id(self, centreline):
         point = Point((172.618567, -43.441594))
         position = centreline.position(point, road_id=1716)
 
-        assert round(position["position_m"], 1) == 4597.2
+        assert round(position["position_m"], 1) == 4595.7
         assert position["road_id"] == 1716
         assert round(position["search_offset_m"], 1) == 38.8
 
@@ -121,8 +129,8 @@ class TestCentreline:
         df = centreline.append_geometry(df)
         assert "wkt" in df.columns
 
-    def test_append_geometry_fast(self, centreline, top_surface):
-        df = top_surface.reset_index().iloc[:100]
+    def test_append_geometry_fast(self, centreline, surface_structure_cleaned):
+        df = surface_structure_cleaned.reset_index().iloc[:100]
         df = centreline.append_geometry(df)
         assert "wkt" in df.columns
 

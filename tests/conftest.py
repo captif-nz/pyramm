@@ -5,7 +5,7 @@ from pyramm.api import Connection
 
 @pytest.fixture(scope="session")
 def conn():
-    return Connection()
+    return Connection(skip_table_name_check=True)
 
 
 @pytest.fixture(scope="session")
@@ -19,5 +19,5 @@ def roadnames(conn):
 
 
 @pytest.fixture(scope="session")
-def top_surface(conn):
-    return conn.top_surface()
+def surface_structure_cleaned(conn):
+    return conn.surface_structure_cleaned()

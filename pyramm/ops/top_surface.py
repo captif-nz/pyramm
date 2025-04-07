@@ -1,4 +1,3 @@
-from typing import List
 import numpy as np
 import pandas as pd
 
@@ -6,7 +5,7 @@ from pyramm.tables import TopSurface
 from pyramm.helpers import _extract_records_from_grid, _records_to_grid
 
 
-def build_top_surface(tables: List[pd.DataFrame]) -> pd.DataFrame:
+def build_top_surface(tables: list[pd.DataFrame]) -> pd.DataFrame:
     """
     Generate the top_surface table from several RAMM-style surface tables (with
     overlapping surface records. If the table contains "full_width_flag" only full width
@@ -92,5 +91,5 @@ def _reset_surface_table_index(df):
 def _fix_na_columns(df):
     for cc in df.columns:
         fill_value = 0 if df[cc].dtype.type == np.float64 else ""
-        df[cc].fillna(fill_value, inplace=True)
+        df[cc] = df[cc].fillna(fill_value)
     return df
