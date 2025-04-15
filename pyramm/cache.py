@@ -10,11 +10,13 @@ from functools import wraps
 from pathlib import Path
 from tempfile import gettempdir
 
+
 from pyramm.version import __version__
 from pyramm.logging import logger
 
 
 TEMP_DIRECTORY = Path(gettempdir()).joinpath("pyramm")
+DEFAULT_SQLITE_PATH = Path().home() / "pyramm.sqlite"
 
 
 def setup_temp_directory():

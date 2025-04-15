@@ -109,3 +109,5 @@ venv.bak/
 poetry.lock
 profiler.py
 profiler_results
+
+*.db
