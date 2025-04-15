@@ -1,5 +1,3 @@
-import numpy as np
-from datetime import datetime, timedelta
 from time import sleep
 from typing import Optional
 from requests import get, post
@@ -12,6 +10,8 @@ from unsync import unsync
 
 from pyramm.cache import file_cache, freezeargs
 from pyramm.config import config
+from pyramm.constants import DEFAULT_SQLITE_PATH
+from pyramm.db import from_sqlite, to_sqlite, update_table_status_in_sqlite
 from pyramm.logging import logger
 from pyramm.tables import (
     SurfaceLayer,
@@ -57,6 +57,7 @@ class Connection:
             "RAMM", "PASSWORD", fallback=environ.get("RAMM_PASSWORD")
         ),
         database="SH New Zealand",
+        sqlite_path=DEFAULT_SQLITE_PATH,
         skip_table_name_check=config().get(
             "RAMM",
             "SKIP_TABLE_NAME_CHECK",
@@ -71,6 +72,7 @@ class Connection:
         )
 
         self.database = database
+        self.sqlite_path = sqlite_path.absolute()
         self.headers = {
             "Content-type": "application/json",
             "referer": "https://test.com",
@@ -231,41 +233,131 @@ class Connection:
             threads=threads,
         )
 
-    def _get_changes(self, table_name, start_date, end_date, road_id=None):
-        dates = [
-            dd.astype(datetime)
-            for dd in np.arange(start_date, end_date, timedelta(days=1))
-        ]
+    # def _get_changes(self, table_name, start_date, end_date, road_id=None):
+    #     dates = [
+    #         dd.astype(datetime)
+    #         for dd in np.arange(start_date, end_date, timedelta(days=1))
+    #     ]
 
-        records = []
-        for start_date_ in dates:
-            end_date_ = start_date_ + timedelta(days=1)
-            response = self._post(
-                "data/changes",
-                {
-                    "changeStartDateTime": start_date_.isoformat(),
-                    "changeEndDateTime": end_date_.isoformat(),
-                    # "gridPaging": {"skip": 0, "take": 1},
-                    "getGeometry": self._geometry_table(table_name),
-                    "tableName": table_name,
-                    "loadType": "All",
-                },
+    #     records = []
+    #     for start_date_ in dates:
+    #         end_date_ = start_date_ + timedelta(days=1)
+    #         response = self._post(
+    #             "data/changes",
+    #             {
+    #                 "changeStartDateTime": start_date_.isoformat(),
+    #                 "changeEndDateTime": end_date_.isoformat(),
+    #                 # "gridPaging": {"skip": 0, "take": 1},
+    #                 "getGeometry": self._geometry_table(table_name),
+    #                 "tableName": table_name,
+    #                 "loadType": "All",
+    #             },
+    #         )
+    #         records.append(
+    #             {
+    #                 "date": end_date_,
+    #                 "changes": response,
+    #             }
+    #         )
+    #     return records
+
+    # def get_changes(self, table_name, start_date, end_date, road_id=None):
+    #     # Check table_name is valid:
+    #     if table_name not in self.table_names():
+    #         raise ValueError(f"'{table_name}' is not a valid table name")
+
+    #     changes = self._get_changes(table_name, start_date, end_date, road_id)
+    #     return changes
+
+    def pull(
+        self,
+        table_name: str,
+        skip_existing: bool = True,
+        road_ids: list[int] | None = None,
+        incremental_download: bool = False,
+    ) -> None:
+        """Pulls the latest version of the table from the remote database.
+
+        Parameters
+        ----------
+        table_name : str
+            RAMM table name
+        skip_existing : bool, optional
+            Skip any road_ids that are already present in the local database, by default True
+        road_ids : list[int] | None, optional
+            List of road_ids to pull. If None, pulls all road_ids. By default None.
+        incremental_download : bool
+            Download the table one road_id at a time, by default True. Only
+            used where the source table contains a road_id column. Has no effect
+            when the road_ids argument is used (always incremental download).
+        """
+
+        logger.info(
+            "WARNING: local SQLite database functionality is still in "
+            "development and is subject to change."
+        )
+
+        entire_table = road_ids is None
+        if_exists = "replace"
+
+        if road_ids is None and not incremental_download:
+            road_ids = [None]
+        else:
+            if "road_id" in self.column_names(table_name):
+                if road_ids is None:
+                    road_ids = self.roadnames().index.to_list()
+
+                # Load the existing table from the local database, if present:
+                existing = from_sqlite(table_name, path=self.sqlite_path)
+
+                if existing is not None:
+                    existing_road_ids = existing["road_id"].unique()
+                    if skip_existing:
+                        # Update the list of road_ids to retrieve to exclude any
+                        # road_ids already present in the local database:
+                        road_ids = [
+                            rr for rr in road_ids if rr not in existing_road_ids
+                        ]
+                    else:
+                        # Drop any road_ids that are already present in the local
+                        # database:
+                        existing = existing.loc[
+                            ~existing["road_id"].isin(road_ids)
+                        ].copy()
+
+                        # Update the local database to remove the road_ids that
+                        # will be downloaded:
+                        to_sqlite(existing, table_name, path=self.sqlite_path)
+
+                    # If the existing table contains some row then mark this as a
+                    # partial download:
+                    entire_table = len(existing) == 0
+                    if_exists = "replace" if entire_table else "append"
+            else:
+                # Set the road_ids variable so it can be used in the for loop:
+                road_ids = [None]
+
+        for road_id in road_ids:
+            logger.info(f"pulling {table_name} (road_id: {road_id})")
+            new = self.get_data(
+                table_name,
+                road_id=road_id,
+                get_geometry=self._geometry_table(table_name),
+                filters=[],
             )
-            records.append(
-                {
-                    "date": end_date_,
-                    "changes": response,
-                }
+            to_sqlite(
+                new,
+                table_name,
+                path=self.sqlite_path,
+                if_exists=if_exists,
             )
-        return records
 
-    def get_changes(self, table_name, start_date, end_date, road_id=None):
-        # Check table_name is valid:
-        if table_name not in self.table_names():
-            raise ValueError(f"'{table_name}' is not a valid table name")
-
-        changes = self._get_changes(table_name, start_date, end_date, road_id)
-        return changes
+        return update_table_status_in_sqlite(
+            self.database,
+            table_name,
+            entire_table,
+            path=self.sqlite_path,
+        )
 
     @lru_cache(maxsize=10)
     def column_names(self, table_name):

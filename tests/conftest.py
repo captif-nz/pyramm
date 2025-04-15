@@ -1,6 +1,17 @@
 import pytest
+from pathlib import Path
 
 from pyramm.api import Connection
+
+
+@pytest.fixture(scope="session")
+def base_path():
+    return Path(__file__).parent
+
+
+@pytest.fixture(scope="session")
+def data_path(base_path):
+    return base_path / "data"
 
 
 @pytest.fixture(scope="session")

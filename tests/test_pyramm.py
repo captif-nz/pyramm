@@ -1,4 +1,3 @@
-from datetime import date
 import pytest
 import pandas as pd
 from shapely.geometry.point import Point
@@ -75,13 +74,13 @@ class TestConnection:
         assert isinstance(n_rows, int)
         assert n_rows > 0
 
-    def test_get_changes(self, conn):
-        changes = conn.get_changes(
-            "carr_way",
-            start_date=date(2024, 10, 1),
-            end_date=date(2024, 11, 1),
-        )
-        assert isinstance(changes, pd.DataFrame)
+    # def test_get_changes(self, conn):
+    #     changes = conn.get_changes(
+    #         "carr_way",
+    #         start_date=date(2024, 10, 1),
+    #         end_date=date(2024, 11, 1),
+    #     )
+    #     assert isinstance(changes, pd.DataFrame)
 
     def test_top_surface(self, conn):
         """
@@ -89,6 +88,12 @@ class TestConnection:
         """
         with pytest.raises(TableRemovedError):
             conn.top_surface()
+
+    def test_pull_table(self, data_path):
+        conn = pyramm.api.Connection(
+            sqlite_path=data_path / "test_sqlite.db",
+        )
+        _ = conn.pull("roadnames", incremental_download=False)
 
 
 class TestCentreline:

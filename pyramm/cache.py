@@ -10,7 +10,6 @@ from functools import wraps
 from pathlib import Path
 from tempfile import gettempdir
 
-from sqlalchemy import create_engine
 
 from pyramm.version import __version__
 from pyramm.logging import logger
@@ -69,123 +68,6 @@ def file_cache(name=None):
 
                 result = func(*args, **kwargs)
                 pickle.dump(result, cache_file_path.open("wb"))
-                return result
-
-            except Exception:
-                return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def is_latest_table_in_sqlite(
-    database,
-    table_name,
-    road_id,
-    latest,
-    path=DEFAULT_SQLITE_PATH,
-):
-    engine = create_engine(f"sqlite:///{path}")
-    try:
-        metadata = pd.read_sql(
-            "SELECT * FROM _metadata;", engine, parse_dates=["last_updated"]
-        ).set_index(("database", "table_name", "road_id", "latest"))
-    except Exception:
-        return False
-
-    try:
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        road_id = road_id if road_id is not None else "all"
-        last_updated = metadata.loc[
-            (database, table_name, road_id, latest),
-            "last_updated",
-        ]
-        if last_updated == today:
-            return True
-
-    except KeyError:
-        pass
-
-    return False
-
-
-def update_metadata_in_sqlite(
-    database,
-    table_name,
-    road_id,
-    latest,
-    path=DEFAULT_SQLITE_PATH,
-):
-    engine = create_engine(f"sqlite:///{path}")
-    try:
-        metadata = pd.read_sql(
-            "SELECT * FROM _metadata;", engine, parse_dates=["last_updated"]
-        ).set_index("table_name")
-    except Exception:
-        metadata = pd.DataFrame(
-            columns=[
-                "table_name",
-                "database",
-                "road_id",
-                "latest",
-                "last_updated",
-            ]
-        ).set_index("table_name")
-
-    road_id = road_id if road_id is not None else "all"
-    metadata.loc[table_name] = [
-        database,
-        road_id,
-        int(latest),
-        datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-    ]
-    metadata.to_sql("_metadata", engine, if_exists="replace", index=True)
-
-
-def sqlite_cache(path=DEFAULT_SQLITE_PATH):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                database = args[0].database
-                table_name = (
-                    args[1]
-                    if "table_name" not in kwargs.keys()
-                    else kwargs["table_name"]
-                )
-                road_id = (
-                    args[2]
-                    if (len(args) > 2 and "road_id" not in kwargs.keys())
-                    else kwargs.get("road_id")
-                )
-                latest = (
-                    args[3]
-                    if (len(args) > 3 and "latest" not in kwargs.keys())
-                    else kwargs.get("latest", False)
-                )
-
-                engine = create_engine(f"sqlite:///{path}")
-
-                if is_latest_table_in_sqlite(
-                    database=database,
-                    table_name=table_name,
-                    road_id=road_id,
-                    latest=latest,
-                    path=path,
-                ):
-                    logger.debug("reading table from sqlite cache")
-                    return pd.read_sql(table_name, engine)
-
-                result = func(*args, **kwargs)
-                result.to_sql(table_name, engine, if_exists="replace", index=False)
-                update_metadata_in_sqlite(
-                    database=database,
-                    table_name=table_name,
-                    road_id=road_id,
-                    latest=latest,
-                    path=path,
-                )
                 return result
 
             except Exception:
