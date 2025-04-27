@@ -6,6 +6,7 @@ from numpy import arange, ceil
 from pandas import DataFrame, concat
 from functools import lru_cache
 from os import environ
+from sqlalchemy import create_engine
 from unsync import unsync
 
 from pyramm.cache import file_cache, freezeargs
@@ -298,26 +299,30 @@ class Connection:
         )
 
         entire_table = road_ids is None
-        if_exists = "replace"
+        if_exists = "append"
 
         if road_ids is None and not incremental_download:
             road_ids = [None]
+            if_exists = "replace"
         else:
             if "road_id" in self.column_names(table_name):
                 if road_ids is None:
                     road_ids = self.roadnames().index.to_list()
 
                 # Load the existing table from the local database, if present:
-                existing = from_sqlite(table_name, path=self.sqlite_path)
+                existing_road_ids = from_sqlite(
+                    f"SELECT DISTINCT road_id FROM {table_name};"
+                )
 
-                if existing is not None:
-                    existing_road_ids = existing["road_id"].unique()
+                if existing_road_ids is not None:
+                    existing_road_ids = existing_road_ids["road_id"].to_list()
                     if skip_existing:
                         # Update the list of road_ids to retrieve to exclude any
                         # road_ids already present in the local database:
                         road_ids = [
                             rr for rr in road_ids if rr not in existing_road_ids
                         ]
+                        print(road_ids)
                     else:
                         # Drop any road_ids that are already present in the local
                         # database:
@@ -331,11 +336,12 @@ class Connection:
 
                     # If the existing table contains some row then mark this as a
                     # partial download:
-                    entire_table = len(existing) == 0
+                    entire_table = len(existing_road_ids) == 0
                     if_exists = "replace" if entire_table else "append"
             else:
                 # Set the road_ids variable so it can be used in the for loop:
                 road_ids = [None]
+                if_exists = "replace"
 
         for road_id in road_ids:
             logger.info(f"pulling {table_name} (road_id: {road_id})")
@@ -345,6 +351,8 @@ class Connection:
                 get_geometry=self._geometry_table(table_name),
                 filters=[],
             )
+            if len(new) == 0:
+                continue
             to_sqlite(
                 new,
                 table_name,

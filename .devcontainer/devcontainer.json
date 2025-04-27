@@ -3,6 +3,7 @@
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
+    "runArgs": ["-v", "/home/captif/pyramm:/home/vscode/pyramm"],
     "postCreateCommand": "./.devcontainer/postCreate.sh",
     "customizations": {
         "vscode": {

@@ -8,16 +8,14 @@ from pyramm.constants import DEFAULT_SQLITE_PATH
 
 
 def from_sqlite(
-    table_name,
+    sql,
     path=DEFAULT_SQLITE_PATH,
     date_columns=[],
     index_columns=[],
 ):
     with suppress(OperationalError):
         engine = create_engine(f"sqlite:///{path.absolute()}")
-        df = pd.read_sql(
-            f"SELECT * FROM {table_name};", engine, parse_dates=[date_columns]
-        )
+        df = pd.read_sql(sql, engine, parse_dates=[date_columns])
         for cc in date_columns:
             try:
                 df[cc] = pd.to_datetime(df[cc]).dt.date
