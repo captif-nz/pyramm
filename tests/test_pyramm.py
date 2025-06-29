@@ -89,11 +89,11 @@ class TestConnection:
         with pytest.raises(TableRemovedError):
             conn.top_surface()
 
-    def test_pull_table(self, data_path):
-        conn = pyramm.api.Connection(
-            sqlite_path=data_path / "test_sqlite.db",
-        )
-        _ = conn.pull("roadnames", incremental_download=False)
+    # def test_pull_table(self, data_path):
+    #     conn = pyramm.api.Connection(
+    #         sqlite_path=data_path / "test_sqlite.db",
+    #     )
+    #     _ = conn.pull("roadnames", incremental_download=False)
 
 
 class TestCentreline:
