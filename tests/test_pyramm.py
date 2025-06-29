@@ -93,7 +93,7 @@ class TestConnection:
         conn = pyramm.api.Connection(
             sqlite_path=data_path / "test_sqlite.db",
         )
-        _ = conn.pull("roadnames", incremental_download=False)
+        _ = conn.pull("carr_way")  #, road_ids=[1583], incremental_download=True)
 
 
 class TestCentreline:

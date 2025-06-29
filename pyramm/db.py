@@ -1,4 +1,5 @@
 from contextlib import suppress
+import numpy as np
 import pandas as pd
 from datetime import date
 from sqlalchemy import create_engine
@@ -49,14 +50,14 @@ def read_table_status_from_sqlite(
         "_table_status",
         path=path,
         date_columns=["date_retrieved"],
-        index_columns=["database", "table_name"],
+        index_columns=["database", "table_name", "road_id"],
     )
 
 
 def update_table_status_in_sqlite(
     database,
     table_name,
-    entire_table,
+    road_id,
     path=DEFAULT_SQLITE_PATH,
 ):
     # Read the table status from the SQLite database or create a new one if it
@@ -64,11 +65,35 @@ def update_table_status_in_sqlite(
     table_status = read_table_status_from_sqlite(path)
     if table_status is None:
         table_status = pd.DataFrame(
-            columns=["database", "table_name", "full_retrieval", "date_retrieved"]
-        ).set_index(["database", "table_name"])
+            columns=["database", "table_name", "road_id", "date_retrieved"]
+        ).set_index(["database", "table_name", "road_id"])
 
-    table_status.loc[(database, table_name), "full_retrieval"] = entire_table
-    table_status.loc[(database, table_name), "date_retrieved"] = date.today()
+    if road_id is None:
+        table_status.reset_index(inplace=True)
+        is_current_table = (
+            (table_status["database"] == database)
+            & (table_status["table_name"] == table_name)
+        )
+        table_status = table_status.loc[~is_current_table]
+        table_status = pd.concat(
+            [
+                table_status,
+                pd.DataFrame(
+                    [
+                        {
+                            "database": database,
+                            "table_name": table_name,
+                            "road_id": None,
+                            "date_retrieved": date.today()
+                        }
+                    ]
+                )
+            ],
+            ignore_index=True,
+        )
+        table_status.set_index(["database", "table_name", "road_id"], inplace=True)
+    else:
+        table_status.loc[(database, table_name, road_id), "date_retrieved"] = date.today()
 
     engine = create_engine(f"sqlite:///{path.absolute()}")
     table_status.to_sql("_table_status", engine, if_exists="replace", index=True)

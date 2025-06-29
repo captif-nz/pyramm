@@ -6,13 +6,13 @@ from numpy import arange, ceil
 from pandas import DataFrame, concat
 from functools import lru_cache
 from os import environ
-from sqlalchemy import create_engine
 from unsync import unsync
+from sqlalchemy.exc import OperationalError
 
 from pyramm.cache import file_cache, freezeargs
 from pyramm.config import config
 from pyramm.constants import DEFAULT_SQLITE_PATH
-from pyramm.db import from_sqlite, to_sqlite, update_table_status_in_sqlite
+from pyramm.db import from_sqlite, read_table_status_from_sqlite, to_sqlite, update_table_status_in_sqlite
 from pyramm.logging import logger
 from pyramm.tables import (
     SurfaceLayer,
@@ -309,9 +309,10 @@ class Connection:
                 if road_ids is None:
                     road_ids = self.roadnames().index.to_list()
 
-                # Load the existing table from the local database, if present:
+                # Get road_ids already retrieved:
                 existing_road_ids = from_sqlite(
-                    f"SELECT DISTINCT road_id FROM {table_name};"
+                    f"SELECT DISTINCT road_id FROM _table_status WHERE database = '{self.database}' AND table_name = '{table_name}';",
+                    path=self.sqlite_path,
                 )
 
                 if existing_road_ids is not None:
@@ -351,21 +352,36 @@ class Connection:
                 get_geometry=self._geometry_table(table_name),
                 filters=[],
             )
-            if len(new) == 0:
-                continue
-            to_sqlite(
-                new,
-                table_name,
-                path=self.sqlite_path,
-                if_exists=if_exists,
-            )
+            if len(new) != 0:
+                try:
+                    to_sqlite(
+                        new,
+                        table_name,
+                        path=self.sqlite_path,
+                        if_exists=if_exists,
+                    )
+                except OperationalError:
+                    # There is a column missing in the database, so we need to
+                    # read the table from the database, append the new data and
+                    # write it back to the database:
+                    existing = from_sqlite(
+                        f"SELECT * FROM {table_name};",
+                        path=self.sqlite_path,
+                    )
+                    to_sqlite(
+                        concat([existing, new], ignore_index=True, axis=0),
+                        table_name,
+                        path=self.sqlite_path,
+                        if_exists="replace",
+                    )
+                    del existing
 
-        return update_table_status_in_sqlite(
-            self.database,
-            table_name,
-            entire_table,
-            path=self.sqlite_path,
-        )
+            update_table_status_in_sqlite(
+                self.database,
+                table_name,
+                road_id,
+                path=self.sqlite_path,
+            )
 
     @lru_cache(maxsize=10)
     def column_names(self, table_name):
