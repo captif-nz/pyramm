@@ -14,24 +14,22 @@ requests = "^2.32.3"
 unsync = "^1.4.0"
 frozendict = "^2.4.6"
 geopandas = "^1.0.1"
-pandas = "^2.1"
-numpy = "^1.26"
+pandas = "^2.2"
+numpy = "^2.0"
 scipy = "^1.14.1"
 shapely = "^2.0.6"
 pyproj = "^3.7.0"
 sqlalchemy = "^2.0.36"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+matplotlib = "^3.9.2"
 pytest = "^8.3.3"
 pre-commit = "^4.0.1"
 black = "^24.10.0"
 pytest-cov = "^6.0.0"
 flake8 = "^7.1.1"
 pytest-randomly = "^3.16.0"
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-matplotlib = "^3.9.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
